@@ -55,7 +55,6 @@ async function addLatLng(){
     d.LatLng = new L.LatLng(d.Latitude, d.Longitude)})
 }
 
-makeMap(nycCD);
 
 function filterByCat(d){
   /*if (this == "All")
@@ -849,7 +848,6 @@ function brushended() {
 
 async function makeMap(theData){
 
-  const data = await theData
 
   // Construct container for the map as in the Observable Leaflet demo
   //let container = DOM.element('div', { style: `width:100%;height:100%` });
@@ -883,7 +881,7 @@ async function makeMap(theData){
     pane: 'labels'
   });
   map.addLayer(labelLayer);
-  map.getPane('labels').style.zIndex = 650;
+  //map.getPane('labels').style.zIndex = 650;
   map.getPane('labels').interactive = false;
   map.getPane('labels').style.pointerEvents = 'none';
   
@@ -892,10 +890,10 @@ async function makeMap(theData){
   // on the popup pane (which by default sits at the top layer, including over the labels).
   let svg = d3.select(map.getPanes().overlayPane).append("svg").attr("pointer-events","auto")
   let g = svg.append("g").attr("class", "leaflet-zoom-hide");
-  let svg2 = d3.select(map.getPanes().popupPane).append("svg")
+  let svg2 = d3.select("#map-controls").append("svg") //d3.select(map.getPanes().popupPane).append("svg")
       .attr('width', '100%') //width)
       .attr('height', '100%') //width)
-      .style('zIndex', 1000)
+//      .style('zIndex', "inherit")
       .attr("pointer-events","none")
   
   // Custom transform between map coordinates and d3 coordinates
@@ -1020,9 +1018,11 @@ async function makeMap(theData){
       .attr("font-size", "12px")
       .attr("font-weight", "bold");
   
-  // The geometries need to be transformed, so add them to the group on the transforming svg element.
+  const CDdata = await theData
+  const cdnames = await cdNames
+    // The geometries need to be transformed, so add them to the group on the transforming svg element.
   const features = g.selectAll('path')
-    .data(data.features)
+    .data(CDdata.features)
     .enter()
       .append('path')
       .style('fill-opacity', 0.5)
@@ -1045,7 +1045,7 @@ async function makeMap(theData){
             .transition(t)
               .call(selectColor)
           fdnyLocs.moveToFront()
-          let cdInfo = cdNames.filter(e=>+e.cdNumber==d.properties.boro_cd)[0]
+          let cdInfo = cdnames.filter(e=>+e.cdNumber==d.properties.boro_cd)[0]
           cdDescriptor.selectAll("text").text(
             cdInfo.Borough + " Community District " + cdInfo.bcdNumber + ": " + cdInfo.cdName)
           cdDescriptor.style("display", null)
@@ -1120,18 +1120,18 @@ async function makeMap(theData){
     cdDescriptor.selectAll("text").text("")
     cdDescriptor.transition(t).style("fill-opacity", 0.001);})
   map.on("viewreset zoom", reset);
-  map.on("move", (e) => { //debugger;
+/*  map.on("move", (e) => { //debugger;
     svg2.attr("transform",
               "translate(" + -e.target.dragging._lastPos.x + "," + 
               -e.target.dragging._lastPos.y + ")");  })
-  
+*/  
   //map.on("move", (e) => legend.attr("transform", "translate(" + e.)
   
   reset();
   
   ////////////////////////////////////////
   function reset() {
-    var bounds = ppath.bounds(data),
+    var bounds = ppath.bounds(CDdata),
         topLeft = bounds[0],
         bottomRight = bounds[1];
     
@@ -1906,3 +1906,4 @@ function input(config) {
   ]
 };
 */
+makeMap(nycCD);
