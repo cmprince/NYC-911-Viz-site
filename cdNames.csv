@@ -1,0 +1,72 @@
+Borough,bcdNumber,cdNumber,cdName,1970 Population,1980 Population,1990 Population,2000 Population,2010 Population
+Bronx,1,201,"Melrose, Mott Haven, Port Morris",138557,78441,77214,82159,91497
+Bronx,2,202,"Hunts Point, Longwood",99493,34399,39443,46824,52246
+Bronx,3,203,"Morrisania, Crotona Park East",150636,53635,57162,68574,79762
+Bronx,4,204,"Highbridge, Concourse Village",144207,114312,119962,139563,146441
+Bronx,5,205,"University Hts., Fordham, Mt. Hope",121807,107995,118435,128313,128200
+Bronx,6,206,"East Tremont, Belmont",114137,65016,68061,75688,83268
+Bronx,7,207,"Bedford Park, Norwood, Fordham",113764,116827,128588,141411,139286
+Bronx,8,208,"Riverdale, Kingsbridge, Marble Hill",103543,98275,97030,101332,101731
+Bronx,9,209,"Soundview, Parkchester",166442,167627,155970,167859,172298
+Bronx,10,210,"Throgs Nk., Co-op City, Pelham Bay",84948,106516,108093,115948,120392
+Bronx,11,211,"Pelham Pkwy, Morris Park, Laconia",105980,99080,97842,110706,113232
+Bronx,12,212,"Wakefield, Williamsbridge",135010,128226,129620,149077,152344
+Bronx,26,226,Van Cortlandt Park,,,,,
+Bronx,27,227,Bronx Park,,,,,
+Bronx,28,228,Pelham Bay Park,,,,,
+Brooklyn,1,301,"Williamsburg, Greenpoint",179390,142942,155972,160338,173083
+Brooklyn,2,302,"Brooklyn Heights, Fort Greene",110221,92732,94534,98620,99617
+Brooklyn,3,303,Bedford Stuyvesant,203380,133379,138696,143867,152985
+Brooklyn,4,304,Bushwick,137902,92497,102572,104358,112634
+Brooklyn,5,305,"East New York, Starrett City",170791,154931,161350,173198,182896
+Brooklyn,6,306,"Park Slope, Carroll Gardens",138933,110228,102724,104054,104709
+Brooklyn,7,307,"Sunset Park, Windsor Terrace",111607,98567,102553,120063,126230
+Brooklyn,8,308,Crown Heights North,121821,88796,96400,96076,96317
+Brooklyn,9,309,"Crown Heights South, Wingate",101047,96669,110715,104014,98429
+Brooklyn,10,310,"Bay Ridge, Dyker Heights",129822,118187,110612,122542,124491
+Brooklyn,11,311,"Bensonhurst, Bath Beach ",170119,155072,149994,172129,181981
+Brooklyn,12,312,"Borough Park, Ocean Parkway",166301,155899,160018,185046,191382
+Brooklyn,13,313,"Coney Island, Brighton Beach",97750,100030,102596,106120,104278
+Brooklyn,14,314,"Flatbush, Midwood",137041,143859,159825,168806,160664
+Brooklyn,15,315,"Sheepshead Bay, Gerritsen Beach",164815,149572,143477,160319,159650
+Brooklyn,16,316,"Brownsville, Ocean Hill",122589,73801,84923,85343,86468
+Brooklyn,17,317,"East Flatbush, Rugby, Farragut",149496,154596,161261,165753,155252
+Brooklyn,18,318,"Canarsie, Flatlands",188643,169092,162428,194653,193543
+Brooklyn,55,355,Prospect Park,,,,,
+Brooklyn,56,356,Jamaica Bay (Brooklyn),,,,,
+Manhattan,1,101,"Battery Park City, Tribeca",7706,15918,25366,34420,60978
+Manhattan,2,102,"Greenwich Village, Soho",84337,87069,94105,93119,90016
+Manhattan,3,103,"Lower East Side, Chinatown",181845,154848,161617,164407,163277
+Manhattan,4,104,"Chelsea, Clinton",83601,82164,84431,87479,103245
+Manhattan,5,105,Midtown Business District,31076,39544,43507,44028,51673
+Manhattan,6,106,"Stuyvesant Town, Turtle Bay",122465,127554,133748,136152,142745
+Manhattan,7,107,"West Side, Upper West Side",212422,206669,210993,207699,209084
+Manhattan,8,108,Upper East Side,200851,204305,210880,217063,219920
+Manhattan,9,109,"Manhattanville, Hamilton Heights",113606,103038,106978,111724,110193
+Manhattan,10,110,Central Harlem,159267,105641,99519,107109,115723
+Manhattan,11,111,East Harlem,154662,114569,110508,117743,120511
+Manhattan,12,112,"Washington Heights, Inwood",180561,179941,198192,208414,190020
+Manhattan,64,164,Central Park,,,,,
+Queens,1,401,"Astoria, Long Island City",185925,185198,188549,211220,191105
+Queens,2,402,"Sunnyside, Woodside",95073,88927,94845,109920,113200
+Queens,3,403,"Jackson Heights, North Corona",123635,122090,128924,169083,171576
+Queens,4,404,"Elmhurst, South Corona",108233,118430,137023,167005,172598
+Queens,5,405,"Ridgewood, Glendale, Maspeth",161022,150142,149126,165911,169190
+Queens,6,406,"Forest Hills, Rego Park",120429,112245,106996,115967,113257
+Queens,7,407,"Flushing, Bay Terrace",207589,204785,220508,242952,247354
+Queens,8,408,"Fresh Meadows, Briarwood",142468,125312,132101,146594,151107
+Queens,9,409,"Woodhaven, Richmond Hill",110367,109505,112151,141608,143317
+Queens,10,410,"Ozone Park, Howard Beach",113857,105651,107768,127274,122396
+Queens,11,411,"Bayside, Douglaston, Little Neck",127883,110963,108056,116404,116431
+Queens,12,412,"Jamaica, St. Albans, Hollis",206639,189383,201293,223602,225919
+Queens,13,413,"Queens Village, Rosedale",184647,173178,177535,196284,188593
+Queens,14,414,"The Rockaways, Broad Channel",98228,100592,100596,106686,114978
+Queens,80,480,LaGuardia International Airport,,,,,
+Queens,81,481,Flushing Meadows Corona Park,,,,,
+Queens,82,482,Forest Park,,,,,
+Queens,83,483,JFK International Airport,,,,,
+Queens,84,484,Jamaica Bay (Queens),,,,,
+Staten Island,1,501,"Stapleton, Port Richmond",135875,138489,137806,162609,175756
+Staten Island,2,502,"New Springville, South Beach",85985,105128,113944,127071,132003
+Staten Island,3,503,"Tottenville, Woodrow, Great Kills",72815,108249,126956,152908,160209
+Staten Island,95,595,"Fort Wadsworth, Great Kills Park",,,,,
