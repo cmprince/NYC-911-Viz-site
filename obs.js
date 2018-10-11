@@ -888,13 +888,20 @@ async function makeMap(theData){
   // We need two svg elements, one which contains the path group on the overlay pane that will be transformed,
   // and one which contains the elements that should stay in place on pan/zoom (legend and borough selectors)
   // on the popup pane (which by default sits at the top layer, including over the labels).
-  let svg = d3.select(map.getPanes().overlayPane).append("svg").attr("pointer-events","auto")
+  let opane = d3.select(map.getPanes().overlayPane)
+  let svg = opane.append("svg").style("pointer-events","all")
   let g = svg.append("g").attr("class", "leaflet-zoom-hide");
-  let svg2 = d3.select("#map-controls").append("svg") //d3.select(map.getPanes().popupPane).append("svg")
-      .attr('width', '100%') //width)
-      .attr('height', '100%') //width)
-//      .style('zIndex', "inherit")
-      .attr("pointer-events","none")
+//  map.getPanes().popupPane.interactive = false;
+  //Why can't I get this to work with a separate div element?
+  let ppane = d3.select(map.getPanes().popupPane) //d3.select("#map-controls").append("svg")
+//      .attr('width', '100%') //width)
+//      .attr('height', '100%') //width)
+//      .style('zIndex', "1000")
+      .style("pointer-events","none")
+ let svg2 = ppane.append("svg")
+      .style("pointer-events","fill")
+      .attr('width', '1000') //width)
+      .attr('height', '500') //width)
   
   // Custom transform between map coordinates and d3 coordinates
   var transform = d3.geoTransform({point: projectPoint})
@@ -1120,11 +1127,11 @@ async function makeMap(theData){
     cdDescriptor.selectAll("text").text("")
     cdDescriptor.transition(t).style("fill-opacity", 0.001);})
   map.on("viewreset zoom", reset);
-/*  map.on("move", (e) => { //debugger;
+  map.on("move", (e) => { //debugger;
     svg2.attr("transform",
               "translate(" + -e.target.dragging._lastPos.x + "," + 
               -e.target.dragging._lastPos.y + ")");  })
-*/  
+  
   //map.on("move", (e) => legend.attr("transform", "translate(" + e.)
   
   reset();
@@ -1147,6 +1154,9 @@ async function makeMap(theData){
 					return "translate("+ 
 						map.latLngToLayerPoint(d.LatLng).x +","+ 
 						map.latLngToLayerPoint(d.LatLng).y +")";})
+    //opane.moveToFront()
+    ppane.moveToFront()
+
   }
 
   function projectPoint(x, y) {

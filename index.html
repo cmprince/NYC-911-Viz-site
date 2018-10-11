@@ -24,10 +24,11 @@ img.leaflet-tile{
     z-index: 1;}
 #map-controls { 
     postion: absolute;
+    height: 100%;
+    width: 100%;
     z-index: 1000;}
 html { height: 100% }
 body { height: 100%; margin: 0; padding: 0;}
-svg { position: relative;}
 </style>
 
 <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.2.0/leaflet.css' />
@@ -38,7 +39,7 @@ svg { position: relative;}
 
 <body>
     <div id="map-container">
-      <div id="map-controls"></div>
+        <!--   <div id="map-controls"></div>  could not get this to work... -->
     </div>
     <script src="./obs.js"></script>
 </body>
