@@ -71,9 +71,10 @@ function filterByCat(d){
 function filterByCD2(d){
   // to be passed in the callback with a parameter, which becomes 'this', e.g., 
   // when calling .filter(filterByCD, cd), cd becomes 'this'.
-  return this ?
-    (this % 100) ?
-      +d.CD == this
+  //console.log(d, this)
+  return +this == 0 ?
+    (+this % 100 != 0) ?
+      +d.CD == +this
     :
       (d.CD > +this) && (d.CD < (+this +100))
     :
@@ -553,19 +554,10 @@ function brushended() {
   return svg.node();
   */
 
-//TODO: this is the histogram
-/*
-}
-)
-    },
-    {
-      name: "chart",
-      inputs: ["d3","DOM","width","height","mytooltip","x2","y2","filterData","binsize","cdfs","fireCat","cd","linea","recordNumbers","filterByCD2","filterByCat","nycCD","agency","quantileFromHistogram","pct","numbins","y3","ordinalSuffix","xAxis","margin","yAxis2","yAxis3"],
-      value: (function(d3,DOM,width,height,mytooltip,x2,y2,filterData,binsize,cdfs,fireCat,cd,linea,recordNumbers,filterByCD2,filterByCat,nycCD,agency,quantileFromHistogram,pct,numbins,y3,ordinalSuffix,xAxis,margin,yAxis2,yAxis3)
-{
+async function makeHist() {
   //console.log(width, height)
   let histMode = true //histogram or cdf display
-  const svg = d3.select(DOM.svg(width, height));
+  const svg = d3.select("#histogram").append("svg").style("width", "100%"); //DOM.svg(width, height));
   
   const ttWidth = 200
   const ttHeight = 20
@@ -583,11 +575,13 @@ function brushended() {
     .style("stroke", "green")
     .style("fill", "none")
     .style("display", "none");
-  
+ 
+  const filterdata = await filterData;
+    console.log(filterdata);
   const bar = svg.append("g")
     .style("fill", "gray")
     .selectAll("rect")
-    .data(filterData)
+    .data(filterdata)
     .enter().append("rect")
   //.style("fill", d=> d.timebin<300 ? "#353" : d.timebin<600? "#992" : "#a55")
     .attr("x", d => x2(d.timebin) +1  )
@@ -596,10 +590,11 @@ function brushended() {
     .attr("height", d => y2(0) - y2(d.count))
  
 
-  console.log(cdfs)
+  const cdf = await cdfs
+    console.log(cdf)
   let serie = svg.append('g')
     .selectAll("g")
-    .data(cdfs.filter(d=>d.month=="").filter(d=>d.icg==fireCat))
+    .data(cdf.filter(d=>d.month=="").filter(d=>d.icg==fireCat))
     .enter().append("g");
   
   serie.append("path")
@@ -841,10 +836,8 @@ function brushended() {
     });
   };
   
-  return svg.node();
+  //return svg.node();
 }
-)
-*/
 
 async function makeMap(theData){
 
@@ -917,7 +910,7 @@ async function makeMap(theData){
   let legend = svg2.append('g')
     .attr("class", "key")
     .attr("width", 500)
-    .attr("transform", `translate(25, ${window.innerWidth/2.5-35})`) // + width/1.6 - 200 + ")")
+    .attr("transform", `translate(25, ${window.innerHeight - 35})`) //Width/2.5-35})`) // + width/1.6 - 200 + ")")
   
   legend.append('rect')
     .attr('width', 300)
@@ -1924,3 +1917,4 @@ function input(config) {
 };
 */
 makeMap(nycCD);
+makeHist();
