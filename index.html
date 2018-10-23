@@ -8,7 +8,7 @@
 <html>
 <head>
 <style>
-.leaflet-marker-icon, .leaflet-marker-shadow, .leaflet-image-layer, .leaflet-pane > svg path, .leaflet-tile-container {
+.leaflet-marker-icon, .leaflet-marker-shadow, .leaflet-image-layer, .leaflet-pane, .leaflet-tile-container {
 				pointer-events: visible;
 			}
 img.leaflet-tile{
@@ -23,10 +23,21 @@ img.leaflet-tile{
     width: 100%;
     z-index: 1;}
 #map-controls { 
-    postion: absolute;
+    display: block;
+    position: fixed;
     height: 100%;
     width: 100%;
+    top: 0;
+    left: 0;
     z-index: 1000;}
+/*.leaflet-control-container > .asdf > */
+.my-control-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;}
+
 html { height: 100% }
 body { height: 100%; margin: 0; padding: 0;}
 </style>
@@ -38,9 +49,8 @@ body { height: 100%; margin: 0; padding: 0;}
 </head>
 
 <body>
-    <div id="map-container">
-        <!--   <div id="map-controls"></div>  could not get this to work... -->
-    </div>
+    <div id="map-container"></div>
+    <!--    <div id="map-controls"></div>   could not get this to work... -->
     <script src="./obs.js"></script>
 </body>
 

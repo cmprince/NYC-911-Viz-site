@@ -889,19 +889,25 @@ async function makeMap(theData){
   // and one which contains the elements that should stay in place on pan/zoom (legend and borough selectors)
   // on the popup pane (which by default sits at the top layer, including over the labels).
   let opane = d3.select(map.getPanes().overlayPane)
-  let svg = opane.append("svg").style("pointer-events","all")
-  let g = svg.append("g").attr("class", "leaflet-zoom-hide");
+  let svg = opane.append("svg").style("pointer-events","painted")
+        .attr('width', '100%')
+        .attr('height', '100%')
+  let g = svg.append("g").attr("class", "leaflet-zoom-hide") //.style("pointer-events", "auto");
 //  map.getPanes().popupPane.interactive = false;
-  //Why can't I get this to work with a separate div element?
-  let ppane = d3.select(map.getPanes().popupPane) //d3.select("#map-controls").append("svg")
-//      .attr('width', '100%') //width)
-//      .attr('height', '100%') //width)
-//      .style('zIndex', "1000")
+
+  //let ppane = d3.select("#map-controls").append("svg") //d3.select(map.getPanes().popupPane)
+  //let ppane = d3.select("body").selectAll(".leaflet-control-container").append("div").attr("class", "my-control-container").append("svg")
+  let ppane = d3.select("body").selectAll(".leaflet-top").filter('.leaflet-left')
+      .append("div").attr("class", "my-control-container")
+      .append("svg")
       .style("pointer-events","none")
- let svg2 = ppane.append("svg")
-      .style("pointer-events","fill")
-      .attr('width', '1000') //width)
-      .attr('height', '500') //width)
+      .attr('width', '100%') //width)
+      .attr('height', '100%') //width)
+      .style('zIndex', "1000")
+ let svg2 = ppane.append("g")
+      .style("pointer-events","none")
+      //.style('width', '100%') //width)
+      //.style('height', '100%') //width)
   
   // Custom transform between map coordinates and d3 coordinates
   var transform = d3.geoTransform({point: projectPoint})
@@ -976,7 +982,7 @@ async function makeMap(theData){
     .data(boroData)
     .enter()
   boroboxes.append("rect")
-      .attr("pointer-events","auto")
+      .attr("pointer-events","fill")
       .attr("width", 100)
       .attr("y", d => d.CD*.4)
       .attr("height", 30)
@@ -1035,7 +1041,7 @@ async function makeMap(theData){
       .style('fill-opacity', 0.5)
       .call(reColor)
       .attr('d', ppath)
-      .attr("pointer-events","auto")
+      .style("pointer-events","fill")
     .on("click", function(d){
         cd = d.properties.boro_cd
         hoverOn = false;    // When clicking a path, turn off hover events
@@ -1045,7 +1051,8 @@ async function makeMap(theData){
         d3.event.stopPropagation()    // Prevent event from bubbling up to the map (which would undo this click)
           })   
     .on("mouseenter", 
-        function(d){ if(hoverOn){
+        function(d){ console.log("what am I doin' 'ere?");
+            if(hoverOn){
           cd = d.properties.boro_cd;
           d3.select(this)
             .moveToFront()
@@ -1127,10 +1134,10 @@ async function makeMap(theData){
     cdDescriptor.selectAll("text").text("")
     cdDescriptor.transition(t).style("fill-opacity", 0.001);})
   map.on("viewreset zoom", reset);
-  map.on("move", (e) => { //debugger;
-    svg2.attr("transform",
-              "translate(" + -e.target.dragging._lastPos.x + "," + 
-              -e.target.dragging._lastPos.y + ")");  })
+ // map.on("move", (e) => { //debugger;
+ //   svg2.attr("transform",
+ //             "translate(" + -e.target.dragging._lastPos.x + "," + 
+ //             -e.target.dragging._lastPos.y + ")");  })
   
   //map.on("move", (e) => legend.attr("transform", "translate(" + e.)
   
@@ -1155,7 +1162,7 @@ async function makeMap(theData){
 						map.latLngToLayerPoint(d.LatLng).x +","+ 
 						map.latLngToLayerPoint(d.LatLng).y +")";})
     //opane.moveToFront()
-    ppane.moveToFront()
+    //ppane.moveToFront()
 
   }
 
