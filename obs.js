@@ -21,6 +21,7 @@ const nycCD = d3.json("./nycCD.json")
 const trends = d3.json("./trends.json")
 const cdfs = d3.json("./cdfs.json")
 const dataSets = d3.json("./dataSets.json")
+const recordNumbers = d3.json("./recordNumbers.json")
 
 const margin = {top: 5, right: 50, bottom: 30, left: 80}
 const height = 180
@@ -60,16 +61,13 @@ function filterByCat(d){
   /*if (this == "All")
     return LLCategories[agency].includes(d.icg);
   else*/
-  theCat = this
-  console.log(d.icg, this, d.icg==this)
-    if (LLCategories['FDNY'].includes(theCat)){ //agency == "FDNY")
-        return d.icg == theCat;}
-    else { 
-      console.log("i got here", +this)
-      const idx = LLCategories['EMS'].indexOf(theCat)
-      const includeCats = LLCategories['EMS'].slice(0,idx+1)
-      console.log(idx, includeCats)
-        return includeCats.includes(d.icg)}
+  theCat = this.valueOf()   // unsure why this became a string object instead of literal
+  if (LLCategories['FDNY'].includes(theCat)){ //agency == "FDNY")
+    return d.icg == theCat;}
+  else { 
+    const idx = LLCategories['EMS'].indexOf(theCat)
+    const includeCats = LLCategories['EMS'].slice(0,idx+1)
+    return includeCats.includes(d.icg)}
 }
 
 function filterByCD2(d){
@@ -104,10 +102,10 @@ function reduceByTimebin(data){
   return returnObjList
 }
 
-function quantileFromHistogram(q, data, thisCD, thisCat, thisMonth="") {
+async function quantileFromHistogram(q, data, thisCD, thisCat, thisMonth="") {
   //console.log('why am i running')
   let sum = 0;
-  let numberInCD = recordNumbers
+  let numberInCD = (await recordNumbers)
                         .filter(filterByCD2, thisCD)
                         .filter(filterByCat, thisCat)
   if (thisMonth) { numberInCD = numberInCD.filter(d => d.month==thisMonth)} //(d=>fireCat==d.icg) 
@@ -178,7 +176,7 @@ function ordinalSuffix(num){
 
 async function fd(d){
     const thedata = await d
-    return reduceByTimebin(thedata.filter(filterByCD2,cd) )//.filter(filterByCat,fireCat))
+    return reduceByTimebin(thedata.filter(filterByCD2,cd).filter(filterByCat,fireCat))
 }
     
 let filterData = fd(dataSets) //reduceByTimebin(dataSets.filter(filterByCD2, cd).filter(filterByCat, fireCat))
@@ -190,16 +188,17 @@ let color = d3.scaleQuantize()
   .range(colorSchemes[agency])
 
 // Axes and scaling functions
-function linea(d){
-    return d3.line()
-        .x(d => x2(+d.timebin))
-        .y(d => y3(+d.cdf))
-}
-function lineaDate(d){
-    return d3.line()
-        .x(d => dateScale(new Date(d.month)))
-        .y(d => medianScale(+d.median))
-}
+// function linea(d){
+//     return d3.line()
+//         .x(d => x2(+d.timebin))
+//         .y(d => y3(+d.cdf))
+// }
+let linea = d3.line()
+    .x(d=>x2(+d.timebin))
+    .y(d=>y3(+d.cdf))
+let lineaDate = d3.line()
+    .x(d => dateScale(new Date(d.month)))
+    .y(d => medianScale(+d.median))
 let x2 = d3.scaleLinear()
     .domain([0, binsize*numbins]) // d3.max(testd.map(x=>+x.timebin+30))]) 
     .range([margin.left, window.innerWidth - margin.right])
@@ -210,7 +209,7 @@ let dateAxis = g => g
     .attr("transform", `translate(0,${height - margin.bottom})`)
     .call(d3.axisBottom(dateScale).ticks(d3.timeYear).tickSizeOuter(0))
     .call(g => g.append("text")
-        .attr("x", width - margin.right)
+        .attr("x", window.innerWidth - margin.right)
         .attr("y", -4)
         .attr("fill", "#000")
         .attr("font-weight", "bold")
@@ -241,7 +240,7 @@ let xAxis = g => g
     .attr("transform", `translate(0,${height - margin.bottom})`)
     .call(d3.axisBottom(x2).tickSizeOuter(0))
     .call(g => g.append("text")
-        .attr("x", width - margin.right)
+        .attr("x", window.innerWidth - margin.right)
         .attr("y", -4)
         .attr("fill", "#000")
         .attr("font-weight", "bold")
@@ -257,7 +256,7 @@ let yAxis2 = g => g
         .attr("font-weight", "bold")
         .text(dataSets.count))
 let yAxis3 = g => g
-    .attr("transform", `translate(${width-margin.right},0)`)
+    .attr("transform", `translate(${window.innerWidth-margin.right},0)`)
     .call(d3.axisRight(y3))
     //.call(g => g.select(".domain").remove())
     .call(g => g.select(".tick:last-of-type text").clone()
@@ -559,45 +558,52 @@ function brushended() {
   return svg.node();
   */
 
-async function makeHist() {
-  //console.log(width, height)
-  let histMode = true //histogram or cdf display
-  const svg = d3.select("#histogram").append("svg").style("width", "100%"); //DOM.svg(width, height));
-  
-  const ttWidth = 200
-  const ttHeight = 20
-  
-  const counttip = new mytooltip({context: svg, ttWidth: 50, align: "end"})
-  const tooltip = new mytooltip({context: svg})
-  const totaltip = new mytooltip({context: svg, align: "end", xoffset: 20})
-  
-  const countLine = svg.append("line")
-    .attr('x1', x2(-10))
-    .attr('y1', y2(0))
-    .attr('x2', x2(100))
-    .attr('y2', y2(0)) //margin.top)
-    .style("stroke-width", 2)
-    .style("stroke", "green")
-    .style("fill", "none")
-    .style("display", "none");
- 
-  const filterdata = await filterData;
-    console.log(filterdata);
-  const bar = svg.append("g")
-    .style("fill", "gray")
-    .selectAll("rect")
+
+const svgHist = d3.select("#histogram").append("svg").style("width", "100%"); //DOM.svg(width, height));
+const gBar = svgHist.append("g").style("fill", "gray")
+const gPath = svgHist.append("g")
+
+async function updateHist() {
+console.log("in the updater")
+  const filterdata = await fd(dataSets)
+
+  let y2 = d3.scaleLinear()
+    .domain([0, d3.max(filterdata, d => +d.count)]).nice()
+    .range([height - margin.bottom, margin.top])
+  let yAxis2 = g => g
+    .attr("transform", `translate(${margin.left},0)`)
+    .call(d3.axisLeft(y2))
+    //.call(g => g.select(".domain").remove())
+    .call(g => g.select(".tick:last-of-type text").clone()
+        .attr("x", 4)
+        .attr("text-anchor", "start")
+        .attr("font-weight", "bold")
+        .text(dataSets.count))
+  let yAxis3 = g => g
+    .attr("transform", `translate(${window.innerWidth-margin.right},0)`)
+    .call(d3.axisRight(y3))
+    //.call(g => g.select(".domain").remove())
+    .call(g => g.select(".tick:last-of-type text").clone()
+        .attr("x", 4)
+        .attr("text-anchor", "start")
+        .attr("font-weight", "bold")
+        .text(dataSets.count))
+
+  const bar = gBar.selectAll("rect")
     .data(filterdata)
-    .enter().append("rect")
+
+//  bar.exit().remove()
+  bar.attr("height", d => y2(0) - y2(d.count)).style("fill", "gray")
+
+  bar.enter().append("rect")
   //.style("fill", d=> d.timebin<300 ? "#353" : d.timebin<600? "#992" : "#a55")
     .attr("x", d => x2(d.timebin) +1  )
     .attr("width", d => x2(.975*binsize)-x2(.025*binsize))
     .attr("y", d => y2(d.count))
     .attr("height", d => y2(0) - y2(d.count))
  
-
   const cdf = await cdfs
-    console.log(cdf)
-  let serie = svg.append('g')
+  let serie = gPath
     .selectAll("g")
     .data(cdf.filter(d=>d.month=="").filter(d=>d.icg==fireCat))
     .enter().append("g");
@@ -608,20 +614,97 @@ async function makeHist() {
       .attr("stroke-linejoin", "round")
       .attr("stroke-linecap", "round")
       .style("stroke", d => (+d.CD==+cd) ? "#fcf" : "#ddd")
-      .attr("d", d => {return linea(d.cdf||0) })
+      .attr("d", d => linea(d.cdf||0))
       .style("display", d => +cd == "" ? null : +cd%100 ? 
                                 (+d.CD%100 ? null : "none") :
                                 (+d.CD >= +cd && +d.CD < (+cd + 100) ? 
                                    null  : "none"));
 
-  const lessThanTip = new mytooltip({context: svg, align: "end", xoffset: 10, fontsize: '40px'})
-  const moreThanTip = new mytooltip({context: svg, align: "start", xoffset: 10, fontsize: '40px'})
+}
+
+async function makeHist() {
+  //console.log(width, height)
+  let histMode = true //histogram or cdf display
+  //const svg = d3.select("#histogram").append("svg").style("width", "100%"); //DOM.svg(width, height));
   
-  const totalcalls = recordNumbers.filter(filterByCD2, cd).filter(filterByCat, fireCat) //(d=>fireCat==d.icg)
+  const ttWidth = 200
+  const ttHeight = 20
+  
+  const counttip = new mytooltip({context: svgHist, ttWidth: 50, align: "end"})
+  const tooltip = new mytooltip({context: svgHist})
+  const totaltip = new mytooltip({context: svgHist, align: "end", xoffset: 20})
+  const lessThanTip = new mytooltip({context: svgHist, align: "end", xoffset: 10, fontsize: '40px'})
+  const moreThanTip = new mytooltip({context: svgHist, align: "start", xoffset: 10, fontsize: '40px'})
+  
+  //const filterdata = await filterData;
+  let filterdata = await fd(dataSets);
+
+ let y2 = d3.scaleLinear()
+   .domain([0, d3.max(filterdata, d => +d.count)]).nice()
+   .range([height - margin.bottom, margin.top])
+ let yAxis2 = g => g
+   .attr("transform", `translate(${margin.left},0)`)
+   .call(d3.axisLeft(y2))
+   //.call(g => g.select(".domain").remove())
+   .call(g => g.select(".tick:last-of-type text").clone()
+       .attr("x", 4)
+       .attr("text-anchor", "start")
+       .attr("font-weight", "bold")
+       .text(dataSets.count))
+ let yAxis3 = g => g
+   .attr("transform", `translate(${window.innerWidth-margin.right},0)`)
+   .call(d3.axisRight(y3))
+   //.call(g => g.select(".domain").remove())
+   .call(g => g.select(".tick:last-of-type text").clone()
+       .attr("x", 4)
+       .attr("text-anchor", "start")
+       .attr("font-weight", "bold")
+       .text(dataSets.count))
+
+  const countLine = svgHist.append("line")
+    .attr('x1', x2(-10))
+    .attr('y1', y2(0))
+    .attr('x2', x2(100))
+    .attr('y2', y2(0)) //margin.top)
+    .style("stroke-width", 2)
+    .style("stroke", "green")
+    .style("fill", "none")
+    .style("display", "none");
+ 
+  const bar = gBar
+    .selectAll("rect")
+    .data(filterdata)
+    .enter().append("rect")
+  //.style("fill", d=> d.timebin<300 ? "#353" : d.timebin<600? "#992" : "#a55")
+    .attr("x", d => x2(d.timebin) +1  )
+    .attr("width", d => x2(.975*binsize)-x2(.025*binsize))
+    .attr("y", d => y2(d.count))
+    .attr("height", d => y2(0) - y2(d.count))
+ 
+  const cdf = await cdfs
+  let serie =gPath 
+    .selectAll("g")
+    .data(cdf.filter(d=>d.month=="").filter(d=>d.icg==fireCat))
+    .enter().append("g");
+  
+  serie.append("path")
+      .attr("fill", "none")
+      .style("stroke-width", d => (+d.CD==+cd) ? 5 : 0.5)
+      .attr("stroke-linejoin", "round")
+      .attr("stroke-linecap", "round")
+      .style("stroke", d => (+d.CD==+cd) ? "#fcf" : "#ddd")
+      .attr("d", d => linea(d.cdf||0))
+      .style("display", d => +cd == "" ? null : +cd%100 ? 
+                                (+d.CD%100 ? null : "none") :
+                                (+d.CD >= +cd && +d.CD < (+cd + 100) ? 
+                                   null  : "none"));
+
+  const recordnumbers = await recordNumbers
+  const totalcalls = recordnumbers.filter(filterByCD2, cd).filter(filterByCat, fireCat) //(d=>fireCat==d.icg)
                       .reduce((sum, d) => sum += +d.count, 0);
   
 //  try {
-  const medobj = nycCD.features.filter(d=>+d.properties.boro_cd==+cd)[0]
+  const medobj = (await nycCD).features.filter(d=>+d.properties.boro_cd==+cd)[0]
                     .properties.median[agency][fireCat]
   const median = medobj.length ? medobj[0].median : NaN
 //    const median = nycCD.features.filter(d=>+d.properties.boro_cd==+cd)[0]
@@ -634,15 +717,15 @@ async function makeHist() {
   
   //console.log(median)
   
-  const ninetyPct = quantileFromHistogram(pct, filterData, cd, fireCat);
-  const average = recordNumbers.filter(filterByCD2, cd).filter(filterByCat, fireCat) //(d=>fireCat==d.icg)
+  const ninetyPct = await quantileFromHistogram(pct, filterdata, cd, fireCat);
+  const average = recordnumbers.filter(filterByCD2, cd).filter(filterByCat, fireCat) //(d=>fireCat==d.icg)
                     .reduce((sum, d) => sum += +d.count * +d.avg, 0)/totalcalls
 
   totaltip.setText(d3.format(",")(totalcalls) + " total calls")
   totaltip.setPosition(x2(binsize*numbins),y3(0.9))
   totaltip.setVisibility("none")
   
-  const hoverLine = svg.append("line")
+  const hoverLine = svgHist.append("line")
       .attr('x1', x2(0))
       .attr('y1', y3(0))
       .attr('x2', x2(0))
@@ -653,7 +736,7 @@ async function makeHist() {
       .style("fill", "none")
       .style("display", "none");
   
-  const medianLine = svg.append("line")
+  const medianLine = svgHist.append("line")
       .attr('x1', x2(median))
       .attr('y1', y3(0))
       .attr('x2', x2(median))
@@ -662,7 +745,7 @@ async function makeHist() {
       .style("stroke", "orange")
       .style("fill", "none");
   
-  const averageLine = svg.append("line")
+  const averageLine = svgHist.append("line")
       .attr('x1', x2(average))
       .attr('y1', y2(0))
       .attr('x2', x2(average))
@@ -672,7 +755,7 @@ async function makeHist() {
       .style("stroke", "blue")
       .style("fill", "none");
   
-  const ninetyLine = svg.append("line")
+  const ninetyLine = svgHist.append("line")
       .attr('x1', x2(ninetyPct))
       .attr('y1', y2(0))
       .attr('x2', x2(ninetyPct))
@@ -681,20 +764,20 @@ async function makeHist() {
       .style("stroke", "red")
       .style("fill", "none")
     
-  const medianNote = svg.append("text")
+  const medianNote = svgHist.append("text")
       .attr('font-family', 'sans-serif')
       .attr('font-size', '14px')
       .attr('font-weight', 'bold')
       .attr('x', x2(median))
-  .attr('align', 'right')
+      .attr('align', 'right')
       .attr('text-anchor', (pct>0.45 & pct<0.55)? 'end':'start')
       .attr('transform', `translate(0,${y3(0.5)})`)
-        .attr("fill","black")
+      .attr("fill","black")
       .attr("dy", "1.2em")
       .attr("dx", `${0.2 * ((pct>0.45 & pct<0.55)?-1:1)}em`)
       .text(`${"Median = " + median + " seconds"}`)
   
-  const averageNote = svg.append("text")
+  const averageNote = svgHist.append("text")
       .attr('font-family', 'sans-serif')
       .attr('font-size', '14px')
       .attr('x', x2(average))
@@ -704,35 +787,35 @@ async function makeHist() {
       .attr("dx", "0.2em")
       .text(`Average = ${Math.round(average)} seconds`)
   
-  const ninetyNote = svg.append("text")
+  const ninetyNote = svgHist.append("text")
       .attr('font-family', 'sans-serif')
       .attr('font-size', '14px')
       .attr('x', Math.min(x2(binsize*numbins),x2(ninetyPct)))
       .attr('align', 'right')
-      .attr('text-anchor', (x2(ninetyPct) > (width-240))? 'end':'start')
+      .attr('text-anchor', (x2(ninetyPct) > (window.innerWidth-240))? 'end':'start')
       .attr('transform', `translate(0,${Math.max(Math.min(y3(0.1),y3(pct)),y3(0.9))})`)
       .attr("fill","black")
       .attr("dy", "1.2em")
-      .attr("dx", `${0.2 * ((x2(ninetyPct) < (width-240))?1:-1)}em`)
+      .attr("dx", `${0.2 * ((x2(ninetyPct) < (window.innerWidth-240))?1:-1)}em`)
       .text(`${Math.round(pct*100)}${ordinalSuffix(Math.round(pct*100))} Percentile ` + (ninetyPct > binsize*numbins ? `more than ${binsize*numbins} seconds`: `= ${ninetyPct} seconds`))
   
   const indicators = [ninetyNote, ninetyLine, medianNote, medianLine, averageNote, averageLine, serie]
   const tips = [tooltip, counttip, moreThanTip, lessThanTip, totaltip]
   
-  const timeAxis = svg.append("g")
+  const timeAxis = svgHist.append("g")
       .attr('class', "xAxis")
   
   timeAxis.call(xAxis)
       .append("text")
       .attr('font-family', 'sans-serif')
       .attr('font-size', '12px')
-      .attr("transform",`translate(${(width - margin.left - margin.right)/2 + margin.left}, 30)`)
+      .attr("transform",`translate(${(window.innerWidth - margin.left - margin.right)/2 + margin.left}, 30)`)
       .attr("fill","black")
       .attr("align","center")
       .style("text-anchor", "middle")
       .text('incident response time (seconds)');
   
-  const countAxis = svg.append("g")
+  const countAxis = svgHist.append("g")
       .attr('class', "yAxis1")
   
   countAxis.call(yAxis2)
@@ -744,7 +827,7 @@ async function makeHist() {
       .attr("transform",`rotate(-90)translate(-35, -50)`)  
       .attr("fill","black")
   
-  const cdfAxis = svg.append("g")
+  const cdfAxis = svgHist.append("g")
       .attr('class', "yAxis2")
   
   cdfAxis.call(yAxis3)
@@ -759,8 +842,8 @@ async function makeHist() {
   
   if (cd%100) { serie.filter(d=>+d.cd==+cd).moveToFront() }
   
-  svg.on("mouseover", () => {  
-    const [xCoord, yCoord] = d3.mouse(svg.node());
+  svgHist.on("mouseover", () => {  
+    const [xCoord, yCoord] = d3.mouse(svgHist.node());
     const top = yCoord > height - margin.bottom;
     const hoverSecs = x2.invert(xCoord);
     const hoverBin = hoverSecs - hoverSecs % binsize;
@@ -773,7 +856,7 @@ async function makeHist() {
     countAxis.style("opacity", 0.2)
   })
   
-  svg.on("mouseout", () => {
+  svgHist.on("mouseout", () => {
     bar
       .transition()
       .duration(150)
@@ -788,18 +871,18 @@ async function makeHist() {
     countAxis.style("opacity", 1)      
   })
   
-  svg.on("mousemove", () => {
-    const [xCoord, yCoord] = d3.mouse(svg.node());
+  svgHist.on("mousemove", () => {
+    const [xCoord, yCoord] = d3.mouse(svgHist.node());
     const top = yCoord > height - margin.bottom;
     const hoverSecs = x2.invert(xCoord);
     const hoverBin = hoverSecs - hoverSecs % binsize;
     let xPosition = x2(hoverBin + binsize) //d3.mouse(this)[0] - ttWidth/2;
     let yPosition = height-20 //d3.mouse(this)[1] - (ttHeight + 5);
-    let pctLess = filterData.filter(e=>+e.timebin<=hoverBin)
+    let pctLess = filterdata.filter(e=>+e.timebin<=hoverBin)
                             .reduce((sum, e) => sum += +e.count, 0) /
-                  recordNumbers.filter(filterByCD2, cd).filter(filterByCat, fireCat) //(d=>fireCat==d.icg)
+                  recordnumbers.filter(filterByCD2, cd).filter(filterByCat, fireCat) //(d=>fireCat==d.icg)
                             .reduce((sum, d) => sum += +d.count, 0)
-    const binCount = filterData.filter(d=>d.timebin==hoverBin)[0].count
+    const binCount = filterdata.filter(d=>d.timebin==hoverBin)[0].count
     bar
       .transition()
       .duration(150)
@@ -816,8 +899,9 @@ async function makeHist() {
     const yBump = isLow ? 30 : isHigh ? -30 : 0
     let prefix
     let suffix
-    if (isLow) {lessThanTip.setAlign("start"); prefix = `←`} else {lessThanTip.setAlign("end"); prefix = ""}
-    if (isHigh) {moreThanTip.setAlign("end"); suffix = `→`} else {moreThanTip.setAlign("start"); suffix = ""}
+    // unicode below is left arrow and right arrow, respectively.
+    if (isLow) {lessThanTip.setAlign("start"); prefix = "\u2190"} else {lessThanTip.setAlign("end"); prefix = ""}
+    if (isHigh) {moreThanTip.setAlign("end"); suffix = "\u2192"} else {moreThanTip.setAlign("start"); suffix = ""}
     
     moreThanTip.setPosition(xPosition, y3(0.5) + yBump)
     moreThanTip.setText(parseFloat(100*(1-pctLess)).toFixed(2) + "%" + suffix)
@@ -845,7 +929,6 @@ async function makeHist() {
 }
 
 async function makeMap(theData){
-
 
   // Construct container for the map as in the Observable Leaflet demo
   //let container = DOM.element('div', { style: `width:100%;height:100%` });
@@ -1049,20 +1132,22 @@ async function makeMap(theData){
         d3.event.stopPropagation()    // Prevent event from bubbling up to the map (which would undo this click)
           })   
     .on("mouseenter", 
-        function(d){ console.log("what am I doin' 'ere?");
-            if(hoverOn){
-          cd = d.properties.boro_cd;
-          d3.select(this)
-            .moveToFront()
-            .transition(t)
-              .call(selectColor)
-          fdnyLocs.moveToFront()
-          let cdInfo = cdnames.filter(e=>+e.cdNumber==d.properties.boro_cd)[0]
-          cdDescriptor.selectAll("text").text(
-            cdInfo.Borough + " Community District " + cdInfo.bcdNumber + ": " + cdInfo.cdName)
-          cdDescriptor.style("display", null)
-          cdDescriptor.transition(t).style("fill-opacity", 1)
-    }})       
+        function(d){
+          if(hoverOn){
+            if (cd != d.properties.boro_cd){
+              cd = d.properties.boro_cd  
+              d3.select(this)
+                .moveToFront()
+                .transition(t)
+                  .call(selectColor)
+              fdnyLocs.moveToFront()
+              let cdInfo = cdnames.filter(e=>+e.cdNumber==d.properties.boro_cd)[0]
+              cdDescriptor.selectAll("text").text(
+                cdInfo.Borough + " Community District " + cdInfo.bcdNumber + ": " + cdInfo.cdName)
+              cdDescriptor.style("display", null)
+              cdDescriptor.transition(t).style("fill-opacity", 1)
+              updateHist()
+    }}})       
     .on("mouseleave", 
         function(d){ if(hoverOn){
           d3.select(this)
