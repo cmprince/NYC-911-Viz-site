@@ -59,24 +59,29 @@ async function addLatLng(){
 function filterByCat(d){
   /*if (this == "All")
     return LLCategories[agency].includes(d.icg);
-  else*/ 
-    if (LLCategories['FDNY'].includes(this)) //agency == "FDNY")
-      return d.icg == this;
+  else*/
+  theCat = this
+  console.log(d.icg, this, d.icg==this)
+    if (LLCategories['FDNY'].includes(theCat)){ //agency == "FDNY")
+        return d.icg == theCat;}
     else { 
-      const idx = LLCategories['EMS'].indexOf(this)
+      console.log("i got here", +this)
+      const idx = LLCategories['EMS'].indexOf(theCat)
       const includeCats = LLCategories['EMS'].slice(0,idx+1)
-      return includeCats.includes(d.icg)}
+      console.log(idx, includeCats)
+        return includeCats.includes(d.icg)}
 }
 
 function filterByCD2(d){
   // to be passed in the callback with a parameter, which becomes 'this', e.g., 
   // when calling .filter(filterByCD, cd), cd becomes 'this'.
   //console.log(d, this)
-  return +this == 0 ?
-    (+this % 100 != 0) ?
-      +d.CD == +this
+  if (this=="") {return true} //this line wasn't necessary in notebook?
+  return (this) ?
+    (this % 100) ?
+      (+d.CD == +this)
     :
-      (d.CD > +this) && (d.CD < (+this +100))
+      ((d.CD > +this) && (d.CD < (+this +100)))
     :
       true;
 }
@@ -173,7 +178,7 @@ function ordinalSuffix(num){
 
 async function fd(d){
     const thedata = await d
-    return reduceByTimebin(thedata.filter(filterByCD2,cd).filter(filterByCat,fireCat))
+    return reduceByTimebin(thedata.filter(filterByCD2,cd) )//.filter(filterByCat,fireCat))
 }
     
 let filterData = fd(dataSets) //reduceByTimebin(dataSets.filter(filterByCD2, cd).filter(filterByCat, fireCat))
