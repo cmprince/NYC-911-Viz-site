@@ -621,7 +621,7 @@ async function updateHist() {
     .data(filterdata)
 
   bar.exit().remove()
-  bar.attr("height", d => y2(0) - y2(d.count)).style("fill", "gray")
+  bar.transition().duration(150).attr("height", d => y2(0) - y2(d.count)).style("fill", "gray")
     .attr("x", d => x2(d.timebin) +1  )
     .attr("y", d => y2(d.count))
 
