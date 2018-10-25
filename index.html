@@ -22,7 +22,7 @@ img.leaflet-tile{
     height: 100%;
     width: 100%;
     z-index: 1;}
-#histogram { 
+#histogram, #trends { 
     display: block;
     position: fixed;
     height: 10%;
@@ -30,6 +30,26 @@ img.leaflet-tile{
     top: 70%;
     left: 0;
     z-index: 1000;}
+#histogram {
+    height: 10%;
+    top: 80%;}
+#trends {
+    height: 10%;
+    top: 65%;}
+#selection-controls {
+    display: block;
+    position: fixed;
+    width: 25%;
+    top: 10%;
+    left: 75%;
+	z-index: 2000;}
+select {
+    width: 100%;
+    padding: 16px 20px;
+    border: 2px solid;
+    border-radius: 20px 0px 0px 20px;
+    background-color: #f1f1f1;
+}
 /*.leaflet-control-container > .asdf > */
 .my-control-container {
     position: fixed;
@@ -51,6 +71,10 @@ body { height: 100%; margin: 0; padding: 0;}
 <body>
     <div id="map-container"></div>
     <div id="histogram"></div>
+    <!--<div id="trends" style="fill:'gray'"></div>-->
+    <div id="selection-controls"><select id="CategoryBox">
+	</select>
+	</div>
     <script src="./obs.js"></script>
 </body>
 

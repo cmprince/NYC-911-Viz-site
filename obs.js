@@ -35,14 +35,57 @@ const revLLCats = Object.keys(LLCategories).reduce((acc, propName) =>
     return a;
   }, acc), {})
 
+let fireCat = LLCategories["FDNY"][0]
+
+//Populate the select box
+let catSelector = document.getElementById('CategoryBox')
+for (let agcy of agencies) {
+    let opt = document.createElement('optgroup')
+//    opt.innerHTML = agcy
+//    opt.value = agcy
+    opt.label = agcy
+    catSelector.appendChild(opt)
+    for (let cat of LLCategories[agcy]) {
+        let opt = document.createElement('option')
+        opt.innerHTML = agcy + ": " + cat 
+        opt.value = cat
+        catSelector.appendChild(opt)
+    }
+}
+
+catSelector.onchange = function () {
+    fireCat = this.value
+    agency = revLLCats[fireCat]
+    binsize = binsizes[agency]
+    dataCat = justCat()
+    catGraphUpdates()
+    updateHist()
+}
+
+function catGraphUpdates () {
+    color = d3.scaleQuantize()
+      .domain(domains[agency])
+      .range(colorSchemes[agency])
+
+    x2 = d3.scaleLinear()
+        .domain([0, binsize*numbins]) // d3.max(testd.map(x=>+x.timebin+30))]) 
+        .range([margin.left, window.innerWidth - margin.right])
+    
+    legendX = d3.scaleLinear()
+        .domain(domains[agency])
+        .range([0, 260])
+
+    d3.select("#map-container").selectAll("path").transition(t).call(reColor)
+}
+
 //const these until I get the layout right
-let agency = "EMS"
-let fireCat = "Segment 1"
+//let fireCat = "Segment 1"
+let agency = revLLCats[fireCat]
 let pct = 0.90
 
 // The width of the bins in seconds.
 const binsizes = new Object({FDNY: 15, EMS: 30})
-const binsize = binsizes[agency]
+let binsize = binsizes[agency]
 // The number of bins to retrieve (covering a total period of \`binsize * numbins\`)`
 const numbins = 60
 // This is a \`mutable\` cell containing the selected Community District number`
@@ -175,7 +218,7 @@ function ordinalSuffix(num){
 }
 
 async function justCat() { return (await dataSets).filter(filterByCat, fireCat) }
-const dataCat = justCat()
+let dataCat = justCat()
 
 async function fd(d){
     const thedata = await d
@@ -666,6 +709,7 @@ async function updateHist() {
   const tips = [tooltip, counttip, moreThanTip, lessThanTip, totaltip]
 
   const timeAxis = d3.select('.xAxis')
+  timeAxis.call(xAxis)
   const countAxis = d3.select('.yAxis1')
   countAxis.call(yAxis2)
 
@@ -989,92 +1033,6 @@ async function makeHist() {
       .attr("transform",`rotate(90)translate(${height/2-margin.top},-30)`)  
       .attr("fill","black")
   
-//   if (cd%100) { serie.filter(d=>+d.cd==+cd).moveToFront() }
-//   
-//   svgHist.on("mouseover", () => {  
-//     const [xCoord, yCoord] = d3.mouse(svgHist.node());
-//     const top = yCoord > height - margin.bottom;
-//     const hoverSecs = x2.invert(xCoord);
-//     const hoverBin = hoverSecs - hoverSecs % binsize;
-// 
-//     for (let t of tips) {t.setVisibility(null)}
-//     for (let e of indicators) {e.style("display", "none")}
-//     hoverLine.style("display", null)
-//     countLine.style("display", null)
-//     timeAxis.style("opacity", 0.2)
-//     countAxis.style("opacity", 0.2)
-//   })
-//   
-//   svgHist.on("mouseout", () => {
-//     bar
-//       .transition()
-//       .duration(150)
-//       .ease(d3.easeLinear)
-//       .style("fill", "gray")
-//       .style("stroke", "none")
-//     for (let t of tips) {t.setVisibility("none")}
-//     for (let e of indicators) {e.style("display", null)}
-//     hoverLine.style("display", "none")
-//     countLine.style("display", "none")
-//     timeAxis.style("opacity", 1)
-//     countAxis.style("opacity", 1)      
-//   })
-//   
-//   svgHist.on("mousemove", () => {
-//     const [xCoord, yCoord] = d3.mouse(svgHist.node());
-//     const top = yCoord > height - margin.bottom;
-//     const hoverSecs = x2.invert(xCoord);
-//     const hoverBin = hoverSecs - hoverSecs % binsize;
-//     let xPosition = x2(hoverBin + binsize) //d3.mouse(this)[0] - ttWidth/2;
-//     let yPosition = height-20 //d3.mouse(this)[1] - (ttHeight + 5);
-//     let pctLess = filterdata.filter(e=>+e.timebin<=hoverBin)
-//                             .reduce((sum, e) => sum += +e.count, 0) /
-//                   recordnumbers.filter(filterByCD2, cd).filter(filterByCat, fireCat) //(d=>fireCat==d.icg)
-//                             .reduce((sum, d) => sum += +d.count, 0)
-//     const binCount = filterdata.filter(d=>d.timebin==hoverBin)[0].count
-//     bar
-//       .transition()
-//       .duration(150)
-//       .ease(d3.easeLinear)
-//       .style("fill", d=> +d.timebin <= +hoverBin ? "#cff" : "#fcc")
-//       .style("stroke","gray")
-// 
-//     tooltip.setPosition(xPosition, yPosition);
-//     tooltip.setText(d3.format(",")(hoverBin + binsize) + " seconds")
-//     counttip.setPosition(x2(0)-10, y2(+binCount) + 0*ttHeight/2)
-//     counttip.setText(d3.format(",")(+binCount))
-//     const isLow = (hoverBin/(binsize*numbins) < 0.2)
-//     const isHigh = (hoverBin/(binsize*numbins) > 0.8)
-//     const yBump = isLow ? 30 : isHigh ? -30 : 0
-//     let prefix
-//     let suffix
-//     // unicode below is left arrow and right arrow, respectively.
-//     if (isLow) {lessThanTip.setAlign("start"); prefix = "\u2190"} else {lessThanTip.setAlign("end"); prefix = ""}
-//     if (isHigh) {moreThanTip.setAlign("end"); suffix = "\u2192"} else {moreThanTip.setAlign("start"); suffix = ""}
-//     
-//     moreThanTip.setPosition(xPosition, y3(0.5) + yBump)
-//     moreThanTip.setText(parseFloat(100*(1-pctLess)).toFixed(2) + "%" + suffix)
-//     lessThanTip.setPosition(xPosition, y3(0.5) - yBump)
-//     lessThanTip.setText(prefix + parseFloat(100*pctLess).toFixed(2) + "%")
-//     hoverLine.transition().duration(50)
-//       .attr("x1", xPosition)
-//       .attr("x2", xPosition)
-//     countLine.transition().duration(50)
-//       .attr("x2", xPosition + x2(3*binsize) - x2(0))
-//       .attr("y1", y2(+binCount))
-//       .attr("y2", y2(+binCount))
-//   })
-// 
-  
-  //svg.on("click", () => { histMode = !histMode; console.log(histMode) })
-  
-//   d3.selection.prototype.moveToFront = function() {  
-//     return this.each(function(){
-//       this.parentNode.appendChild(this);
-//     });
-//   };
-  
-  //return svg.node();
   updateHist()
 }
 
