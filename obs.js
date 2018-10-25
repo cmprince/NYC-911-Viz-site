@@ -617,9 +617,10 @@ async function updateHist() {
   const bar = gBar.selectAll("rect")
     .data(filterdata)
 
-//  bar.exit().remove()
+  bar.exit().remove()
   bar.attr("height", d => y2(0) - y2(d.count)).style("fill", "gray")
-     .attr("y", d => y2(d.count))
+    .attr("x", d => x2(d.timebin) +1  )
+    .attr("y", d => y2(d.count))
 
   bar.enter().append("rect")
   //.style("fill", d=> d.timebin<300 ? "#353" : d.timebin<600? "#992" : "#a55")
@@ -1304,7 +1305,7 @@ async function makeMap(theData){
           d3.select(this)
             .transition(t)
               .call(reColor)
-          updateHist()
+          //updateHist()
         }
   });
   
