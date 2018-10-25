@@ -23,7 +23,7 @@ const cdfs = d3.json("./cdfs.json")
 const dataSets = d3.json("./dataSets.json")
 const recordNumbers = d3.json("./recordNumbers.json")
 
-const margin = {top: 5, right: 50, bottom: 30, left: 80}
+const margin = {top: 5, right: 70, bottom: 60, left: 80}
 const height = 180
 const agencies = ['FDNY', 'EMS']
 const LLCategories = new Object({
@@ -558,14 +558,39 @@ function brushended() {
   return svg.node();
   */
 
+  d3.selection.prototype.moveToFront = function() {  
+    return this.each(function(){
+      this.parentNode.appendChild(this);
+    });
+  };
 
 const svgHist = d3.select("#histogram").append("svg").style("width", "100%"); //DOM.svg(width, height));
 const gBar = svgHist.append("g").style("fill", "gray")
 const gPath = svgHist.append("g")
+const counttip = new mytooltip({context: svgHist, ttWidth: 50, align: "end"})
+const tooltip = new mytooltip({context: svgHist})
+const totaltip = new mytooltip({context: svgHist, align: "end", xoffset: 20})
+const lessThanTip = new mytooltip({context: svgHist, align: "end", xoffset: 10, fontsize: '40px'})
+const moreThanTip = new mytooltip({context: svgHist, align: "start", xoffset: 10, fontsize: '40px'})
 
 async function updateHist() {
-console.log("in the updater")
+
   const filterdata = await fd(dataSets)
+  const recordnumbers = await recordNumbers
+  const ninetyPct = await quantileFromHistogram(pct, filterdata, cd, fireCat);
+  const totalcalls = recordnumbers.filter(filterByCD2, cd).filter(filterByCat, fireCat) //(d=>fireCat==d.icg)
+                      .reduce((sum, d) => sum += +d.count, 0);
+  const average = recordnumbers.filter(filterByCD2, cd).filter(filterByCat, fireCat) //(d=>fireCat==d.icg)
+                    .reduce((sum, d) => sum += +d.count * +d.avg, 0)/totalcalls
+  const medobj = (await nycCD).features.filter(d=>+d.properties.boro_cd==+cd)[0]
+                    .properties.median[agency][fireCat]
+  const median = medobj.length ? medobj[0].median : NaN
+  const ttWidth = 200
+  const ttHeight = 20
+
+  totaltip.setText(d3.format(",")(totalcalls) + " total calls")
+  totaltip.setPosition(x2(binsize*numbins),y3(0.9))
+  totaltip.setVisibility("none")
 
   let y2 = d3.scaleLinear()
     .domain([0, d3.max(filterdata, d => +d.count)]).nice()
@@ -594,6 +619,7 @@ console.log("in the updater")
 
 //  bar.exit().remove()
   bar.attr("height", d => y2(0) - y2(d.count)).style("fill", "gray")
+     .attr("y", d => y2(d.count))
 
   bar.enter().append("rect")
   //.style("fill", d=> d.timebin<300 ? "#353" : d.timebin<600? "#992" : "#a55")
@@ -620,228 +646,67 @@ console.log("in the updater")
                                 (+d.CD >= +cd && +d.CD < (+cd + 100) ? 
                                    null  : "none"));
 
-}
+  if (cd%100) { serie.filter(d=>+d.cd==+cd).moveToFront() }
+  
+  const hoverLine = d3.selectAll("#hoverLine")
+  const countLine = d3.selectAll("#countLine")
+  const medianLine = d3.selectAll("#medianLine")
+  const averageLine = d3.selectAll("#averageLine")
+  const ninetyLine = d3.selectAll("#ninetyLine")
+  const medianNote = d3.selectAll("#medianNote")
+  const averageNote = d3.selectAll("#averageNote")
+  const ninetyNote = d3.selectAll("#ninetyNote")
+  const indicators = [ninetyNote, ninetyLine, medianNote, medianLine, averageNote, averageLine, serie]
+  const tips = [tooltip, counttip, moreThanTip, lessThanTip, totaltip]
 
-async function makeHist() {
-  //console.log(width, height)
-  let histMode = true //histogram or cdf display
-  //const svg = d3.select("#histogram").append("svg").style("width", "100%"); //DOM.svg(width, height));
-  
-  const ttWidth = 200
-  const ttHeight = 20
-  
-  const counttip = new mytooltip({context: svgHist, ttWidth: 50, align: "end"})
-  const tooltip = new mytooltip({context: svgHist})
-  const totaltip = new mytooltip({context: svgHist, align: "end", xoffset: 20})
-  const lessThanTip = new mytooltip({context: svgHist, align: "end", xoffset: 10, fontsize: '40px'})
-  const moreThanTip = new mytooltip({context: svgHist, align: "start", xoffset: 10, fontsize: '40px'})
-  
-  //const filterdata = await filterData;
-  let filterdata = await fd(dataSets);
+  const countAxis = d3.select('.yAxis1')
+  countAxis.call(yAxis2)
 
- let y2 = d3.scaleLinear()
-   .domain([0, d3.max(filterdata, d => +d.count)]).nice()
-   .range([height - margin.bottom, margin.top])
- let yAxis2 = g => g
-   .attr("transform", `translate(${margin.left},0)`)
-   .call(d3.axisLeft(y2))
-   //.call(g => g.select(".domain").remove())
-   .call(g => g.select(".tick:last-of-type text").clone()
-       .attr("x", 4)
-       .attr("text-anchor", "start")
-       .attr("font-weight", "bold")
-       .text(dataSets.count))
- let yAxis3 = g => g
-   .attr("transform", `translate(${window.innerWidth-margin.right},0)`)
-   .call(d3.axisRight(y3))
-   //.call(g => g.select(".domain").remove())
-   .call(g => g.select(".tick:last-of-type text").clone()
-       .attr("x", 4)
-       .attr("text-anchor", "start")
-       .attr("font-weight", "bold")
-       .text(dataSets.count))
+//       .append("text")
+//       .attr('font-family', 'sans-serif')
+//       .attr('font-size', '12px')
+//       .text('number of calls')
+//       .attr("align","center")
+//       .attr("transform",`rotate(-90)translate(-35, -50)`)  
+//       .attr("fill","black")
 
-  const countLine = svgHist.append("line")
-    .attr('x1', x2(-10))
-    .attr('y1', y2(0))
-    .attr('x2', x2(100))
-    .attr('y2', y2(0)) //margin.top)
-    .style("stroke-width", 2)
-    .style("stroke", "green")
-    .style("fill", "none")
-    .style("display", "none");
- 
-  const bar = gBar
-    .selectAll("rect")
-    .data(filterdata)
-    .enter().append("rect")
-  //.style("fill", d=> d.timebin<300 ? "#353" : d.timebin<600? "#992" : "#a55")
-    .attr("x", d => x2(d.timebin) +1  )
-    .attr("width", d => x2(.975*binsize)-x2(.025*binsize))
-    .attr("y", d => y2(d.count))
-    .attr("height", d => y2(0) - y2(d.count))
- 
-  const cdf = await cdfs
-  let serie =gPath 
-    .selectAll("g")
-    .data(cdf.filter(d=>d.month=="").filter(d=>d.icg==fireCat))
-    .enter().append("g");
-  
-  serie.append("path")
-      .attr("fill", "none")
-      .style("stroke-width", d => (+d.CD==+cd) ? 5 : 0.5)
-      .attr("stroke-linejoin", "round")
-      .attr("stroke-linecap", "round")
-      .style("stroke", d => (+d.CD==+cd) ? "#fcf" : "#ddd")
-      .attr("d", d => linea(d.cdf||0))
-      .style("display", d => +cd == "" ? null : +cd%100 ? 
-                                (+d.CD%100 ? null : "none") :
-                                (+d.CD >= +cd && +d.CD < (+cd + 100) ? 
-                                   null  : "none"));
-
-  const recordnumbers = await recordNumbers
-  const totalcalls = recordnumbers.filter(filterByCD2, cd).filter(filterByCat, fireCat) //(d=>fireCat==d.icg)
-                      .reduce((sum, d) => sum += +d.count, 0);
-  
-//  try {
-  const medobj = (await nycCD).features.filter(d=>+d.properties.boro_cd==+cd)[0]
-                    .properties.median[agency][fireCat]
-  const median = medobj.length ? medobj[0].median : NaN
-//    const median = nycCD.features.filter(d=>+d.properties.boro_cd==+cd)[0]
-//                    .properties.median[agency][fireCat][0]
-//                    .median; 
-//   }
-// catch (e) {
-//    const median = NaN
-//    }
-  
-  //console.log(median)
-  
-  const ninetyPct = await quantileFromHistogram(pct, filterdata, cd, fireCat);
-  const average = recordnumbers.filter(filterByCD2, cd).filter(filterByCat, fireCat) //(d=>fireCat==d.icg)
-                    .reduce((sum, d) => sum += +d.count * +d.avg, 0)/totalcalls
-
-  totaltip.setText(d3.format(",")(totalcalls) + " total calls")
-  totaltip.setPosition(x2(binsize*numbins),y3(0.9))
-  totaltip.setVisibility("none")
-  
-  const hoverLine = svgHist.append("line")
-      .attr('x1', x2(0))
-      .attr('y1', y3(0))
-      .attr('x2', x2(0))
-      .attr('y2', y3(1)) //margin.top)
-      .attr("pointer-events", "none")
-      .style("stroke-width", 4)
-      .style("stroke", "black")
-      .style("fill", "none")
-      .style("display", "none");
-  
-  const medianLine = svgHist.append("line")
+  medianLine
       .attr('x1', x2(median))
       .attr('y1', y3(0))
       .attr('x2', x2(median))
       .attr('y2', y3(0.5)) //margin.top)
-      .style("stroke-width", 4)
-      .style("stroke", "orange")
-      .style("fill", "none");
   
-  const averageLine = svgHist.append("line")
+  averageLine
       .attr('x1', x2(average))
       .attr('y1', y2(0))
       .attr('x2', x2(average))
       .attr('y2', y3(1))
-      .style("stroke-dasharray", ("20, 10"))
-      .style("stroke-width", 4)
-      .style("stroke", "blue")
-      .style("fill", "none");
   
-  const ninetyLine = svgHist.append("line")
+  ninetyLine
       .attr('x1', x2(ninetyPct))
       .attr('y1', y2(0))
       .attr('x2', x2(ninetyPct))
       .attr('y2', y3(pct)) //margin.top+60)
-      .style("stroke-width", 4)
-      .style("stroke", "red")
-      .style("fill", "none")
-    
-  const medianNote = svgHist.append("text")
-      .attr('font-family', 'sans-serif')
-      .attr('font-size', '14px')
-      .attr('font-weight', 'bold')
+
+  medianNote 
       .attr('x', x2(median))
-      .attr('align', 'right')
       .attr('text-anchor', (pct>0.45 & pct<0.55)? 'end':'start')
       .attr('transform', `translate(0,${y3(0.5)})`)
-      .attr("fill","black")
-      .attr("dy", "1.2em")
       .attr("dx", `${0.2 * ((pct>0.45 & pct<0.55)?-1:1)}em`)
       .text(`${"Median = " + median + " seconds"}`)
   
-  const averageNote = svgHist.append("text")
-      .attr('font-family', 'sans-serif')
-      .attr('font-size', '14px')
+  averageNote
       .attr('x', x2(average))
       .attr('transform', `translate(0,${y3(1)})`)
-        .attr("fill","black")
-      .attr("dy", "1.2em")
-      .attr("dx", "0.2em")
       .text(`Average = ${Math.round(average)} seconds`)
   
-  const ninetyNote = svgHist.append("text")
-      .attr('font-family', 'sans-serif')
-      .attr('font-size', '14px')
+  ninetyNote
       .attr('x', Math.min(x2(binsize*numbins),x2(ninetyPct)))
-      .attr('align', 'right')
       .attr('text-anchor', (x2(ninetyPct) > (window.innerWidth-240))? 'end':'start')
       .attr('transform', `translate(0,${Math.max(Math.min(y3(0.1),y3(pct)),y3(0.9))})`)
-      .attr("fill","black")
-      .attr("dy", "1.2em")
       .attr("dx", `${0.2 * ((x2(ninetyPct) < (window.innerWidth-240))?1:-1)}em`)
       .text(`${Math.round(pct*100)}${ordinalSuffix(Math.round(pct*100))} Percentile ` + (ninetyPct > binsize*numbins ? `more than ${binsize*numbins} seconds`: `= ${ninetyPct} seconds`))
-  
-  const indicators = [ninetyNote, ninetyLine, medianNote, medianLine, averageNote, averageLine, serie]
-  const tips = [tooltip, counttip, moreThanTip, lessThanTip, totaltip]
-  
-  const timeAxis = svgHist.append("g")
-      .attr('class', "xAxis")
-  
-  timeAxis.call(xAxis)
-      .append("text")
-      .attr('font-family', 'sans-serif')
-      .attr('font-size', '12px')
-      .attr("transform",`translate(${(window.innerWidth - margin.left - margin.right)/2 + margin.left}, 30)`)
-      .attr("fill","black")
-      .attr("align","center")
-      .style("text-anchor", "middle")
-      .text('incident response time (seconds)');
-  
-  const countAxis = svgHist.append("g")
-      .attr('class', "yAxis1")
-  
-  countAxis.call(yAxis2)
-      .append("text")
-      .attr('font-family', 'sans-serif')
-      .attr('font-size', '12px')
-      .text('number of calls')
-      .attr("align","center")
-      .attr("transform",`rotate(-90)translate(-35, -50)`)  
-      .attr("fill","black")
-  
-  const cdfAxis = svgHist.append("g")
-      .attr('class', "yAxis2")
-  
-  cdfAxis.call(yAxis3)
-      .append("text")
-      .attr('font-family', 'sans-serif')
-      .attr('font-size', '12px')
-      .text('cumulative portion of calls')
-      .attr("align","center")
-      .style("text-anchor", "middle")
-      .attr("transform",`rotate(90)translate(${height/2-margin.top},-30)`)  
-      .attr("fill","black")
-  
-  if (cd%100) { serie.filter(d=>+d.cd==+cd).moveToFront() }
-  
+
   svgHist.on("mouseover", () => {  
     const [xCoord, yCoord] = d3.mouse(svgHist.node());
     const top = yCoord > height - margin.bottom;
@@ -916,16 +781,302 @@ async function makeHist() {
       .attr("y2", y2(+binCount))
   })
 
+}
+
+async function makeHist() {
+  //console.log(width, height)
+  let histMode = true //histogram or cdf display
+  //const svg = d3.select("#histogram").append("svg").style("width", "100%"); //DOM.svg(width, height));
+  
+  let filterdata = await fd(dataSets);
+
+ let y2 = d3.scaleLinear()
+   .domain([0, d3.max(filterdata, d => +d.count)]).nice()
+   .range([height - margin.bottom, margin.top])
+ let yAxis2 = g => g
+   .attr("transform", `translate(${margin.left},0)`)
+   .call(d3.axisLeft(y2))
+   //.call(g => g.select(".domain").remove())
+   .call(g => g.select(".tick:last-of-type text").clone()
+       .attr("x", 4)
+       .attr("text-anchor", "start")
+       .attr("font-weight", "bold")
+       .text(dataSets.count))
+ let yAxis3 = g => g
+   .attr("transform", `translate(${window.innerWidth-margin.right},0)`)
+   .call(d3.axisRight(y3))
+   //.call(g => g.select(".domain").remove())
+   .call(g => g.select(".tick:last-of-type text").clone()
+       .attr("x", 4)
+       .attr("text-anchor", "start")
+       .attr("font-weight", "bold")
+       .text(dataSets.count))
+
+  const countLine = svgHist.append("line")
+    .attr('x1', x2(-10))
+    .attr('y1', y2(0))
+    .attr('x2', x2(100))
+    .attr('y2', y2(0)) //margin.top)
+    .style("stroke-width", 2)
+    .style("stroke", "green")
+    .style("fill", "none")
+    .style("display", "none")
+    .attr("id", "countLine");
+ 
+//   const bar = gBar
+//     .selectAll("rect")
+//     .data(filterdata)
+//     .enter().append("rect")
+//   //.style("fill", d=> d.timebin<300 ? "#353" : d.timebin<600? "#992" : "#a55")
+//     .attr("x", d => x2(d.timebin) +1  )
+//     .attr("width", d => x2(.975*binsize)-x2(.025*binsize))
+//     .attr("y", d => y2(d.count))
+//     .attr("height", d => y2(0) - y2(d.count))
+//  
+//   const cdf = await cdfs
+//   let serie =gPath 
+//     .selectAll("g")
+//     .data(cdf.filter(d=>d.month=="").filter(d=>d.icg==fireCat))
+//     .enter().append("g");
+//   
+//   serie.append("path")
+//       .attr("fill", "none")
+//       .style("stroke-width", d => (+d.CD==+cd) ? 5 : 0.5)
+//       .attr("stroke-linejoin", "round")
+//       .attr("stroke-linecap", "round")
+//       .style("stroke", d => (+d.CD==+cd) ? "#fcf" : "#ddd")
+//       .attr("d", d => linea(d.cdf||0))
+//       .style("display", d => +cd == "" ? null : +cd%100 ? 
+//                                 (+d.CD%100 ? null : "none") :
+//                                 (+d.CD >= +cd && +d.CD < (+cd + 100) ? 
+//                                    null  : "none"));
+
+//    const recordnumbers = await recordNumbers
+//    const totalcalls = recordnumbers.filter(filterByCD2, cd).filter(filterByCat, fireCat) //(d=>fireCat==d.icg)
+//                        .reduce((sum, d) => sum += +d.count, 0);
+  
+//  try {
+//   const medobj = (await nycCD).features.filter(d=>+d.properties.boro_cd==+cd)[0]
+//                     .properties.median[agency][fireCat]
+//   const median = medobj.length ? medobj[0].median : NaN
+//    const median = nycCD.features.filter(d=>+d.properties.boro_cd==+cd)[0]
+//                    .properties.median[agency][fireCat][0]
+//                    .median; 
+//   }
+// catch (e) {
+//    const median = NaN
+//    }
+  
+  //console.log(median)
+  
+//    const ninetyPct = await quantileFromHistogram(pct, filterdata, cd, fireCat);
+//    const average = recordnumbers.filter(filterByCD2, cd).filter(filterByCat, fireCat) //(d=>fireCat==d.icg)
+//                      .reduce((sum, d) => sum += +d.count * +d.avg, 0)/totalcalls
+
+//   totaltip.setText(d3.format(",")(totalcalls) + " total calls")
+//   totaltip.setPosition(x2(binsize*numbins),y3(0.9))
+//   totaltip.setVisibility("none")
+ 
+  const average = 20
+  const ninetyPct = 0
+  const median = 10
+  const hoverLine = svgHist.append("line")
+      .attr('x1', x2(0))
+      .attr('y1', y3(0))
+      .attr('x2', x2(0))
+      .attr('y2', y3(1)) //margin.top)
+      .attr("pointer-events", "none")
+      .style("stroke-width", 4)
+      .style("stroke", "black")
+      .style("fill", "none")
+      .style("display", "none")
+      .attr("id", "hoverLine");
+  
+  const medianLine = svgHist.append("line")
+      .style("stroke-width", 4)
+      .style("stroke", "orange")
+      .style("fill", "none")
+      .attr("id", "medianLine");
+  
+  const averageLine = svgHist.append("line")
+      .style("stroke-dasharray", ("20, 10"))
+      .style("stroke-width", 4)
+      .style("stroke", "blue")
+      .style("fill", "none")
+      .attr("id", "averageLine");
+  
+  const ninetyLine = svgHist.append("line")
+      .style("stroke-width", 4)
+      .style("stroke", "red")
+      .style("fill", "none")
+      .attr("id", "ninetyLine");
+    
+  const medianNote = svgHist.append("text")
+      .attr('font-family', 'sans-serif')
+      .attr('font-size', '14px')
+      .attr('font-weight', 'bold')
+      .attr('x', x2(median))
+      .attr('align', 'right')
+      .attr('text-anchor', (pct>0.45 & pct<0.55)? 'end':'start')
+      .attr('transform', `translate(0,${y3(0.5)})`)
+      .attr("fill","black")
+      .attr("dy", "1.2em")
+      .attr("dx", `${0.2 * ((pct>0.45 & pct<0.55)?-1:1)}em`)
+      .text(`${"Median = " + median + " seconds"}`)
+      .attr("id", "medianNote");
+  
+  const averageNote = svgHist.append("text")
+      .attr('font-family', 'sans-serif')
+      .attr('font-size', '14px')
+      .attr('x', x2(average))
+      .attr('transform', `translate(0,${y3(1)})`)
+        .attr("fill","black")
+      .attr("dy", "1.2em")
+      .attr("dx", "0.2em")
+      .text(`Average = ${Math.round(average)} seconds`)
+      .attr("id", "averageNote");
+  
+  const ninetyNote = svgHist.append("text")
+      .attr('font-family', 'sans-serif')
+      .attr('font-size', '14px')
+      .attr('x', Math.min(x2(binsize*numbins),x2(ninetyPct)))
+      .attr('align', 'right')
+      .attr('text-anchor', (x2(ninetyPct) > (window.innerWidth-240))? 'end':'start')
+      .attr('transform', `translate(0,${Math.max(Math.min(y3(0.1),y3(pct)),y3(0.9))})`)
+      .attr("fill","black")
+      .attr("dy", "1.2em")
+      .attr("dx", `${0.2 * ((x2(ninetyPct) < (window.innerWidth-240))?1:-1)}em`)
+      .text(`${Math.round(pct*100)}${ordinalSuffix(Math.round(pct*100))} Percentile ` + (ninetyPct > binsize*numbins ? `more than ${binsize*numbins} seconds`: `= ${ninetyPct} seconds`))
+      .attr("id", "ninetyNote");
+  
+//   const indicators = [ninetyNote, ninetyLine, medianNote, medianLine, averageNote, averageLine, serie]
+//   const tips = [tooltip, counttip, moreThanTip, lessThanTip, totaltip]
+  
+  const timeAxis = svgHist.append("g")
+      .attr('class', "xAxis")
+  
+  timeAxis.call(xAxis)
+      .append("text")
+      .attr('font-family', 'sans-serif')
+      .attr('font-size', '12px')
+      .attr("transform",`translate(${(window.innerWidth - margin.left - margin.right)/2 + margin.left}, 30)`)
+      .attr("fill","black")
+      .attr("align","center")
+      .style("text-anchor", "middle")
+      .text('incident response time (seconds)');
+  
+  const countAxis = svgHist.append("g")
+      .attr('class', "yAxis1")
+  
+  countAxis.call(yAxis2)
+      .append("text")
+      .attr('font-family', 'sans-serif')
+      .attr('font-size', '12px')
+      .text('number of calls')
+      .attr("align","center")
+      .attr("transform",`rotate(-90)translate(-35, -50)`)  
+      .attr("fill","black")
+  
+  const cdfAxis = svgHist.append("g")
+      .attr('class', "yAxis2")
+  
+  cdfAxis.call(yAxis3)
+      .append("text")
+      .attr('font-family', 'sans-serif')
+      .attr('font-size', '12px')
+      .text('cumulative portion of calls')
+      .attr("align","center")
+      .style("text-anchor", "middle")
+      .attr("transform",`rotate(90)translate(${height/2-margin.top},-30)`)  
+      .attr("fill","black")
+  
+//   if (cd%100) { serie.filter(d=>+d.cd==+cd).moveToFront() }
+//   
+//   svgHist.on("mouseover", () => {  
+//     const [xCoord, yCoord] = d3.mouse(svgHist.node());
+//     const top = yCoord > height - margin.bottom;
+//     const hoverSecs = x2.invert(xCoord);
+//     const hoverBin = hoverSecs - hoverSecs % binsize;
+// 
+//     for (let t of tips) {t.setVisibility(null)}
+//     for (let e of indicators) {e.style("display", "none")}
+//     hoverLine.style("display", null)
+//     countLine.style("display", null)
+//     timeAxis.style("opacity", 0.2)
+//     countAxis.style("opacity", 0.2)
+//   })
+//   
+//   svgHist.on("mouseout", () => {
+//     bar
+//       .transition()
+//       .duration(150)
+//       .ease(d3.easeLinear)
+//       .style("fill", "gray")
+//       .style("stroke", "none")
+//     for (let t of tips) {t.setVisibility("none")}
+//     for (let e of indicators) {e.style("display", null)}
+//     hoverLine.style("display", "none")
+//     countLine.style("display", "none")
+//     timeAxis.style("opacity", 1)
+//     countAxis.style("opacity", 1)      
+//   })
+//   
+//   svgHist.on("mousemove", () => {
+//     const [xCoord, yCoord] = d3.mouse(svgHist.node());
+//     const top = yCoord > height - margin.bottom;
+//     const hoverSecs = x2.invert(xCoord);
+//     const hoverBin = hoverSecs - hoverSecs % binsize;
+//     let xPosition = x2(hoverBin + binsize) //d3.mouse(this)[0] - ttWidth/2;
+//     let yPosition = height-20 //d3.mouse(this)[1] - (ttHeight + 5);
+//     let pctLess = filterdata.filter(e=>+e.timebin<=hoverBin)
+//                             .reduce((sum, e) => sum += +e.count, 0) /
+//                   recordnumbers.filter(filterByCD2, cd).filter(filterByCat, fireCat) //(d=>fireCat==d.icg)
+//                             .reduce((sum, d) => sum += +d.count, 0)
+//     const binCount = filterdata.filter(d=>d.timebin==hoverBin)[0].count
+//     bar
+//       .transition()
+//       .duration(150)
+//       .ease(d3.easeLinear)
+//       .style("fill", d=> +d.timebin <= +hoverBin ? "#cff" : "#fcc")
+//       .style("stroke","gray")
+// 
+//     tooltip.setPosition(xPosition, yPosition);
+//     tooltip.setText(d3.format(",")(hoverBin + binsize) + " seconds")
+//     counttip.setPosition(x2(0)-10, y2(+binCount) + 0*ttHeight/2)
+//     counttip.setText(d3.format(",")(+binCount))
+//     const isLow = (hoverBin/(binsize*numbins) < 0.2)
+//     const isHigh = (hoverBin/(binsize*numbins) > 0.8)
+//     const yBump = isLow ? 30 : isHigh ? -30 : 0
+//     let prefix
+//     let suffix
+//     // unicode below is left arrow and right arrow, respectively.
+//     if (isLow) {lessThanTip.setAlign("start"); prefix = "\u2190"} else {lessThanTip.setAlign("end"); prefix = ""}
+//     if (isHigh) {moreThanTip.setAlign("end"); suffix = "\u2192"} else {moreThanTip.setAlign("start"); suffix = ""}
+//     
+//     moreThanTip.setPosition(xPosition, y3(0.5) + yBump)
+//     moreThanTip.setText(parseFloat(100*(1-pctLess)).toFixed(2) + "%" + suffix)
+//     lessThanTip.setPosition(xPosition, y3(0.5) - yBump)
+//     lessThanTip.setText(prefix + parseFloat(100*pctLess).toFixed(2) + "%")
+//     hoverLine.transition().duration(50)
+//       .attr("x1", xPosition)
+//       .attr("x2", xPosition)
+//     countLine.transition().duration(50)
+//       .attr("x2", xPosition + x2(3*binsize) - x2(0))
+//       .attr("y1", y2(+binCount))
+//       .attr("y2", y2(+binCount))
+//   })
+// 
   
   //svg.on("click", () => { histMode = !histMode; console.log(histMode) })
   
-  d3.selection.prototype.moveToFront = function() {  
-    return this.each(function(){
-      this.parentNode.appendChild(this);
-    });
-  };
+//   d3.selection.prototype.moveToFront = function() {  
+//     return this.each(function(){
+//       this.parentNode.appendChild(this);
+//     });
+//   };
   
   //return svg.node();
+  updateHist()
 }
 
 async function makeMap(theData){
@@ -1152,7 +1303,9 @@ async function makeMap(theData){
         function(d){ if(hoverOn){
           d3.select(this)
             .transition(t)
-              .call(reColor)}
+              .call(reColor)
+          updateHist()
+        }
   });
   
   const fdnyLocs = g.selectAll('circle')
@@ -1205,6 +1358,7 @@ async function makeMap(theData){
     cdDescriptor.transition(t).style("fill-opacity", 0.001)
     cdDescriptor.style("display", "none")
     cdDescriptor.selectAll("text").text("")
+    updateHist();
   }})
   
   // Turn hover mode back on when clicking anywhere in the map (ignored when clicked in paths
@@ -1215,7 +1369,9 @@ async function makeMap(theData){
     g.selectAll('path').transition(t).call(reColor)
     boroboxes.selectAll('rect').transition(t).call(boxColor)
     cdDescriptor.selectAll("text").text("")
-    cdDescriptor.transition(t).style("fill-opacity", 0.001);})
+    cdDescriptor.transition(t).style("fill-opacity", 0.001);
+    updateHist();
+  })
   map.on("viewreset zoom", reset);
  // map.on("move", (e) => { //debugger;
  //   svg2.attr("transform",
