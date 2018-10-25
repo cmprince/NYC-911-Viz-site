@@ -174,12 +174,15 @@ function ordinalSuffix(num){
   }
 }
 
+async function justCat() { return (await dataSets).filter(filterByCat, fireCat) }
+const dataCat = justCat()
+
 async function fd(d){
     const thedata = await d
-    return reduceByTimebin(thedata.filter(filterByCD2,cd).filter(filterByCat,fireCat))
+    return reduceByTimebin(thedata.filter(filterByCD2,cd)) //.filter(filterByCat,fireCat))
 }
     
-let filterData = fd(dataSets) //reduceByTimebin(dataSets.filter(filterByCD2, cd).filter(filterByCat, fireCat))
+let filterData = fd(dataCat) //reduceByTimebin(dataSets.filter(filterByCD2, cd).filter(filterByCat, fireCat))
 
 const colorSchemes = new Object({EMS: d3.schemeBlues[6], FDNY: d3.schemeReds[5]})
 const domains = new Object({EMS: [250,550], FDNY: [150,400]})
@@ -575,7 +578,7 @@ const moreThanTip = new mytooltip({context: svgHist, align: "start", xoffset: 10
 
 async function updateHist() {
 
-  const filterdata = await fd(dataSets)
+  const filterdata = await fd(dataCat) //was dataSets 
   const recordnumbers = await recordNumbers
   const ninetyPct = await quantileFromHistogram(pct, filterdata, cd, fireCat);
   const totalcalls = recordnumbers.filter(filterByCD2, cd).filter(filterByCat, fireCat) //(d=>fireCat==d.icg)
@@ -637,17 +640,19 @@ async function updateHist() {
   
   serie.append("path")
       .attr("fill", "none")
-      .style("stroke-width", d => (+d.CD==+cd) ? 5 : 0.5)
       .attr("stroke-linejoin", "round")
       .attr("stroke-linecap", "round")
+
+  gPath.selectAll("path")
       .style("stroke", d => (+d.CD==+cd) ? "#fcf" : "#ddd")
-      .attr("d", d => linea(d.cdf||0))
+      .attr("d", d => { console.log(d.CD, +cd); return linea(d.cdf||0)})
+      .style("stroke-width", d => (+d.CD==+cd) ? 5 : 0.5)
       .style("display", d => +cd == "" ? null : +cd%100 ? 
                                 (+d.CD%100 ? null : "none") :
                                 (+d.CD >= +cd && +d.CD < (+cd + 100) ? 
                                    null  : "none"));
 
-  if (cd%100) { serie.filter(d=>+d.cd==+cd).moveToFront() }
+  if (cd%100) { serie.selectAll("path").filter(d=>+d.cd==+cd).moveToFront() }
   
   const hoverLine = d3.selectAll("#hoverLine")
   const countLine = d3.selectAll("#countLine")
@@ -660,16 +665,9 @@ async function updateHist() {
   const indicators = [ninetyNote, ninetyLine, medianNote, medianLine, averageNote, averageLine, serie]
   const tips = [tooltip, counttip, moreThanTip, lessThanTip, totaltip]
 
+  const timeAxis = d3.select('.xAxis')
   const countAxis = d3.select('.yAxis1')
   countAxis.call(yAxis2)
-
-//       .append("text")
-//       .attr('font-family', 'sans-serif')
-//       .attr('font-size', '12px')
-//       .text('number of calls')
-//       .attr("align","center")
-//       .attr("transform",`rotate(-90)translate(-35, -50)`)  
-//       .attr("fill","black")
 
   medianLine
       .attr('x1', x2(median))
@@ -743,7 +741,7 @@ async function updateHist() {
     const hoverSecs = x2.invert(xCoord);
     const hoverBin = hoverSecs - hoverSecs % binsize;
     let xPosition = x2(hoverBin + binsize) //d3.mouse(this)[0] - ttWidth/2;
-    let yPosition = height-20 //d3.mouse(this)[1] - (ttHeight + 5);
+    let yPosition = y3(0)+20 //d3.mouse(this)[1] - (ttHeight + 5);
     let pctLess = filterdata.filter(e=>+e.timebin<=hoverBin)
                             .reduce((sum, e) => sum += +e.count, 0) /
                   recordnumbers.filter(filterByCD2, cd).filter(filterByCat, fireCat) //(d=>fireCat==d.icg)
@@ -1099,7 +1097,7 @@ async function makeMap(theData){
     minNativeZoom: 8,
     maxNativeZoom: 19,
     subdomains: '1234',
-    attribution: "map tiles <a href='https://maps.nyc.gov/tiles/'>© City of New York</a> (<a href='https://creativecommons.org/licenses/by/4.0/'>CC BY 4.0</a>)",
+    attribution: "map tiles <a href='https://maps.nyc.gov/tiles/'>\u00A9 City of New York</a> (<a href='https://creativecommons.org/licenses/by/4.0/'>CC BY 4.0</a>)",
     bounds: L.latLngBounds([39.3682, -75.9374], [42.0329, -71.7187])
   });
   map.addLayer(baseLayer);
@@ -1224,6 +1222,7 @@ async function makeMap(theData){
       //.attr("pointer-events","painted")
       .on("click", function(d){
         cd = d.CD
+        updateHist();
         hoverOn = false;
         g.selectAll('path').transition(t).call(reColor)
         g.selectAll('path')
@@ -1238,7 +1237,8 @@ async function makeMap(theData){
           d3.select(this)
             .transition(t)
               .call(selectColor);
-          cd.value = d.CD;
+          cd = d.CD;
+          updateHist()
           g.selectAll('path')
             .filter(function(e) {return (e.properties.boro_cd > +d.CD & e.properties.boro_cd < +d.CD + 100) })
             .transition(t)
@@ -1249,7 +1249,8 @@ async function makeMap(theData){
             d3.select(this)
               .transition(t)
               .call(boxColor);
-        cd.value = ""; 
+        cd = "";
+        updateHist()
         g.selectAll('path')
           .transition(t)
             .call(reColor)
@@ -1277,6 +1278,7 @@ async function makeMap(theData){
       .style("pointer-events","fill")
     .on("click", function(d){
         cd = d.properties.boro_cd
+        updateHist()
         hoverOn = false;    // When clicking a path, turn off hover events
         g.selectAll('path').transition(t).call(reColor)
         boroboxes.selectAll('rect').transition(t).call(boxColor)
