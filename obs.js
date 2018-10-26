@@ -76,6 +76,36 @@ function catGraphUpdates () {
         .range([0, 260])
 
     d3.select("#map-container").selectAll("path").transition(t).call(reColor)
+
+    const indicators = d3.select("#legendIndicators").selectAll("rect")
+    indicators.data(color.range().map(function(d) {
+      d = color.invertExtent(d);
+      if (d[0] == null) d[0] = legendX.domain()[0];
+      if (d[1] == null) d[1] = legendX.domain()[1];
+      return d;
+    }))
+    indicators.exit().remove()
+    indicators.attr("height", 8)
+        .style('fill-opacity', 0.5)
+        .attr("x", function(d) { return legendX(d[0]); })
+        .attr("width", function(d) { return legendX(d[1]) - legendX(d[0]); })
+        .attr("fill", function(d) { return color(d[0]); })
+    indicators.enter().append("rect")
+        .attr("height", 8)
+        .style('fill-opacity', 0.5)
+        .attr("x", function(d) { return legendX(d[0]); })
+        .attr("width", function(d) { return legendX(d[1]) - legendX(d[0]); })
+        .attr("fill", function(d) { return color(d[0]); })
+
+    const legend = d3.select("#legend")
+    legend.select("text")
+      .attr("x", legendX.range()[0])
+    
+    legend.call(d3.axisBottom(legendX)
+      .tickSize(13)
+      .tickValues(d3.range(...domains[agency], 50)))
+    .select(".domain")
+      .remove();
 }
 
 //const these until I get the layout right
@@ -669,7 +699,6 @@ async function updateHist() {
     .attr("y", d => y2(d.count))
 
   bar.enter().append("rect")
-  //.style("fill", d=> d.timebin<300 ? "#353" : d.timebin<600? "#992" : "#a55")
     .attr("x", d => x2(d.timebin) +1  )
     .attr("width", d => x2(.975*binsize)-x2(.025*binsize))
     .attr("y", d => y2(d.count))
@@ -1114,8 +1143,9 @@ async function makeMap(theData){
     .attr('fill', '#eee')
     .style('fill-opacity', 0.92)
     .attr('transform', `translate(-20, -20)`)
+    .attr("id", "legend")
   
-  legend.append('g').selectAll("rect")
+  legend.append('g').attr("id", "legendIndicators").selectAll("rect")
     .data(color.range().map(function(d) {
       d = color.invertExtent(d);
       if (d[0] == null) d[0] = legendX.domain()[0];
@@ -1152,10 +1182,10 @@ async function makeMap(theData){
     .style("pointer-events", "none")
     .attr("fill-opacity", 0.25)
   cdDescriptor.append("rect")
-      .attr("fill-opacity", 0.25)
-      .attr("width", window.innerWidth*0.9)
-      .attr("height", 50)
-      .attr("fill", "#ddd")
+    .attr("fill-opacity", 0.25)
+    .attr("width", window.innerWidth*0.9)
+    .attr("height", 50)
+    .attr("fill", "#ddd")
   cdDescriptor.append("text")
     .text("")
     .attr("transform", `translate(${window.innerWidth*0.45},35)`)
