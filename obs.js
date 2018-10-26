@@ -62,12 +62,16 @@ catSelector.onchange = function () {
 
 function catGraphUpdates () {
     color = d3.scaleQuantize()
-      .domain(domains[agency])
-      .range(colorSchemes[agency])
+        .domain(domains[agency])
+        .range(colorSchemes[agency])
 
     x2 = d3.scaleLinear()
         .domain([0, binsize*numbins]) // d3.max(testd.map(x=>+x.timebin+30))]) 
         .range([margin.left, window.innerWidth - margin.right])
+    
+    y2 = d3.scaleLinear()
+        .domain([0, d3.max(dataCat, d => +d.count)]).nice()
+        .range([height - margin.bottom, margin.top])
     
     legendX = d3.scaleLinear()
         .domain(domains[agency])
@@ -667,10 +671,10 @@ async function updateHist() {
   totaltip.setPosition(x2(binsize*numbins),y3(0.9))
   totaltip.setVisibility("none")
 
-  let y2 = d3.scaleLinear()
-    .domain([0, d3.max(filterdata, d => +d.count)]).nice()
-    .range([height - margin.bottom, margin.top])
-  let yAxis2 = g => g
+   let y2 = d3.scaleLinear()
+     .domain([0, d3.max(filterdata, d => +d.count)]).nice()
+     .range([height - margin.bottom, margin.top])
+   let yAxis2 = g => g
     .attr("transform", `translate(${margin.left},0)`)
     .call(d3.axisLeft(y2))
     //.call(g => g.select(".domain").remove())
@@ -705,16 +709,12 @@ async function updateHist() {
  
   const cdf = await cdfs
   let serie = gPath
-    .selectAll("g")
+    .selectAll("path")
     .data(cdf.filter(d=>d.month=="").filter(d=>d.icg==fireCat))
-    .enter().append("g");
-  
-  serie.append("path")
-      .attr("fill", "none")
-      .attr("stroke-linejoin", "round")
-      .attr("stroke-linecap", "round")
 
-  gPath.selectAll("path")
+  serie.exit().remove()
+
+  serie //.selectAll("path")
       .style("stroke", d => (+d.CD==+cd) ? "#fcf" : "#ddd")
       .attr("d", d => { console.log(d.CD, +cd); return linea(d.cdf||0)})
       .style("stroke-width", d => (+d.CD==+cd) ? 5 : 0.5)
@@ -722,6 +722,12 @@ async function updateHist() {
                                 (+d.CD%100 ? null : "none") :
                                 (+d.CD >= +cd && +d.CD < (+cd + 100) ? 
                                    null  : "none"));
+  serie.enter() //.append("g")
+      .append("path")
+      .attr("fill", "none")
+      .attr("stroke-linejoin", "round")
+      .attr("stroke-linecap", "round")
+
 
   if (cd%100) { serie.selectAll("path").filter(d=>+d.cd==+cd).moveToFront() }
   
