@@ -41,8 +41,6 @@ let fireCat = LLCategories["FDNY"][0]
 let catSelector = document.getElementById('CategoryBox')
 for (let agcy of agencies) {
     let opt = document.createElement('optgroup')
-//    opt.innerHTML = agcy
-//    opt.value = agcy
     opt.label = agcy
     catSelector.appendChild(opt)
     for (let cat of LLCategories[agcy]) {
@@ -73,7 +71,7 @@ function catGraphUpdates () {
     
     legendX = d3.scaleLinear()
         .domain(domains[agency])
-        .range([0, 260])
+        .range([0, 360])
 
     d3.select("#map-container").selectAll("path").transition(t).call(reColor)
 
@@ -85,7 +83,7 @@ function catGraphUpdates () {
       return d;
     }))
     indicators.exit().remove()
-    indicators.attr("height", 8)
+    indicators.transition().duration(1000).attr("height", 8)
         .style('fill-opacity', 0.5)
         .attr("x", function(d) { return legendX(d[0]); })
         .attr("width", function(d) { return legendX(d[1]) - legendX(d[0]); })
@@ -100,12 +98,13 @@ function catGraphUpdates () {
     const legend = d3.select("#legend")
     legend.select("text")
       .attr("x", legendX.range()[0])
-    
-    legend.call(d3.axisBottom(legendX)
+console.log("here!")
+    //legend.selectAll(".tick").remove()
+    legend.transition().duration(1000).call(d3.axisBottom(legendX)
       .tickSize(13)
       .tickValues(d3.range(...domains[agency], 50)))
-    .select(".domain")
-      .remove();
+//    .select(".domain")
+//      .remove();
 }
 
 //const these until I get the layout right
@@ -311,7 +310,7 @@ let y3 = d3.scaleLinear()
     .range([height - margin.bottom, margin.top])
 let legendX = d3.scaleLinear()
     .domain(domains[agency])
-    .range([0, 260])
+    .range([0, 360])
 let xAxis = g => g
     .attr("transform", `translate(0,${height - margin.bottom})`)
     .call(d3.axisBottom(x2).tickSizeOuter(0))
@@ -1132,21 +1131,22 @@ async function makeMap(theData){
   let ppath = d3.geoPath().projection(transform);
   
   // The legend group is added to our static svg element
-  let legend = svg2.append('g')
+  let legendG = svg2.append('g')
     .attr("class", "key")
     .attr("width", 500)
     .attr("transform", `translate(25, ${window.innerHeight - 35})`) //Width/2.5-35})`) // + width/1.6 - 200 + ")")
   
-  legend.append('rect')
+  legendG.append('rect')
     .attr('width', 300)
     .attr('height', 50)
     .attr('fill', '#eee')
     .style('fill-opacity', 0.92)
     .attr('transform', `translate(-20, -20)`)
-    .attr("id", "legend")
   
-  legend.append('g').attr("id", "legendIndicators").selectAll("rect")
-    .data(color.range().map(function(d) {
+  let legend = legendG.append('g').attr("id", "legend")
+  legend.append("g").attr("id", "legendIndicators")
+      .selectAll("rect")
+      .data(color.range().map(function(d) {
       d = color.invertExtent(d);
       if (d[0] == null) d[0] = legendX.domain()[0];
       if (d[1] == null) d[1] = legendX.domain()[1];
@@ -1172,8 +1172,8 @@ async function makeMap(theData){
   legend.call(d3.axisBottom(legendX)
     .tickSize(13)
     .tickValues(d3.range(...domains[agency], 50)))
-  .select(".domain")
-    .remove();
+//  .select(".domain")
+//    .remove();
   
   // The geometry "popup"
   const cdDescriptor = svg2.append('g')
