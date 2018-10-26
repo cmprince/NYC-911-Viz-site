@@ -77,11 +77,11 @@ function catGraphUpdates () {
         .domain(domains[agency])
         .range([0, 360])
 
-    d3.select("#map-container").selectAll("path").transition(t).call(reColor)
+    d3.select("#map-container").selectAll("path").transition().duration(1000).call(reColor)
 
     const indicators = d3.select("#legendIndicators").selectAll("rect")
-    indicators.data(color.range().map(function(d) {
-      d = color.invertExtent(d);
+    indicators.data(color.range().map(function(dd) {
+      d = color.invertExtent(dd);
       if (d[0] == null) d[0] = legendX.domain()[0];
       if (d[1] == null) d[1] = legendX.domain()[1];
       return d;
@@ -89,7 +89,7 @@ function catGraphUpdates () {
     indicators.exit().remove()
     indicators.transition().duration(1000).attr("height", 8)
         .style('fill-opacity', 0.5)
-        .attr("x", function(d) { return legendX(d[0]); })
+        .attr("x", function(d) {console.log(d[0]); return legendX(d[0]); })
         .attr("width", function(d) { return legendX(d[1]) - legendX(d[0]); })
         .attr("fill", function(d) { return color(d[0]); })
     indicators.enter().append("rect")
@@ -102,13 +102,9 @@ function catGraphUpdates () {
     const legend = d3.select("#legend")
     legend.select("text")
       .attr("x", legendX.range()[0])
-console.log("here!")
-    //legend.selectAll(".tick").remove()
     legend.transition().duration(1000).call(d3.axisBottom(legendX)
       .tickSize(13)
       .tickValues(d3.range(...domains[agency], 50)))
-//    .select(".domain")
-//      .remove();
 }
 
 //const these until I get the layout right
@@ -360,6 +356,7 @@ let selectColor = d  =>  d.style('stroke', "#ff0")
 let boxColor = d  =>  d.style('stroke', "blue")
                             .style('stroke-width', "1px")
                             .style("fill", "#ddd")
+
 d3.selection.prototype.moveToFront = function() {  
     return this.each(function(){
       this.parentNode.appendChild(this);
@@ -637,11 +634,11 @@ function brushended() {
   return svg.node();
   */
 
-  d3.selection.prototype.moveToFront = function() {  
-    return this.each(function(){
-      this.parentNode.appendChild(this);
-    });
-  };
+//  d3.selection.prototype.moveToFront = function() {  
+//    return this.each(function(){
+//      this.parentNode.appendChild(this);
+//    });
+//  };
 
 const svgHist = d3.select("#histogram").append("svg").style("width", "100%"); //DOM.svg(width, height));
 const gBar = svgHist.append("g").style("fill", "gray")
@@ -715,13 +712,14 @@ async function updateHist() {
   serie.exit().remove()
 
   serie //.selectAll("path")
+      .attr("d", d => linea(d.cdf||0))
       .style("stroke", d => (+d.CD==+cd) ? "#fcf" : "#ddd")
-      .attr("d", d => { console.log(d.CD, +cd); return linea(d.cdf||0)})
       .style("stroke-width", d => (+d.CD==+cd) ? 5 : 0.5)
       .style("display", d => +cd == "" ? null : +cd%100 ? 
                                 (+d.CD%100 ? null : "none") :
                                 (+d.CD >= +cd && +d.CD < (+cd + 100) ? 
-                                   null  : "none"));
+                                   null  : "none"))
+
   serie.enter() //.append("g")
       .append("path")
       .attr("fill", "none")
@@ -1143,7 +1141,7 @@ async function makeMap(theData){
     .attr("transform", `translate(25, ${window.innerHeight - 35})`) //Width/2.5-35})`) // + width/1.6 - 200 + ")")
   
   legendG.append('rect')
-    .attr('width', 300)
+    .attr('width', 400)
     .attr('height', 50)
     .attr('fill', '#eee')
     .style('fill-opacity', 0.92)
