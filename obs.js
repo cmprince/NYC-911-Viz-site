@@ -72,7 +72,9 @@ function catGraphUpdates () {
     y2 = d3.scaleLinear()
         .domain([0, d3.max(dataCat, d => +d.count)]).nice()
         .range([height - margin.bottom, margin.top])
-    
+
+    const oldLegendX = legendX
+
     legendX = d3.scaleLinear()
         .domain(domains[agency])
         .range([0, 360])
@@ -80,19 +82,24 @@ function catGraphUpdates () {
     d3.select("#map-container").selectAll("path").transition().duration(1000).call(reColor)
 
     const indicators = d3.select("#legendIndicators").selectAll("rect")
-    indicators.data(color.range().map(function(dd) {
+      .data(color.range().map(function(dd) {
       d = color.invertExtent(dd);
       if (d[0] == null) d[0] = legendX.domain()[0];
       if (d[1] == null) d[1] = legendX.domain()[1];
       return d;
-    }))
-    indicators.exit().remove()
-    indicators.transition().duration(1000).attr("height", 8)
-        .style('fill-opacity', 0.5)
-        .attr("x", function(d) {console.log(d[0]); return legendX(d[0]); })
+    }), d=>d[0])
+    indicators.exit()
+        .transition().duration(1000)
+        .attr("x", function(d) { return legendX(d[0]); })
         .attr("width", function(d) { return legendX(d[1]) - legendX(d[0]); })
-        .attr("fill", function(d) { return color(d[0]); })
+        .style("fill-opacity", 0.001)
+        .remove()
     indicators.enter().append("rect")
+        .attr("x", function(d) { return oldLegendX(d[0]); })
+        .attr("width", function(d) { return oldLegendX(d[1]) - oldLegendX(d[0]); })
+        .style('fill-opacity', 0.001)
+        .merge(indicators)
+        .transition().duration(1000)
         .attr("height", 8)
         .style('fill-opacity', 0.5)
         .attr("x", function(d) { return legendX(d[0]); })
@@ -489,10 +496,10 @@ slider({
     {
       name: "trend",
       inputs: ["d3","DOM","width","height","mytooltip","trends","fireCat","cd","lineaDate","recordNumbers","filterByCD2","filterByCat","nycCD","agency","quantileFromHistogram","pct","filterData","dateAxis","margin","medianAxis","x2","binsize","dateScale"],
-      value: (function(d3,DOM,width,height,mytooltip,trends,fireCat,cd,lineaDate,recordNumbers,filterByCD2,filterByCat,nycCD,agency,quantileFromHistogram,pct,filterData,dateAxis,margin,medianAxis,x2,binsize,dateScale)
-{
+      value: (function(d3,DOM,width,height,mytooltip,trends,fireCat,cd,lineaDate,recordNumbers,filterByCD2,filterByCat,nycCD,agency,quantileFromHistogram,pct,filterData,dateAxis,margin,medianAxis,x2,binsize,dateScale)*/
+async function makeTrends() {
   //console.log(width, height)
-  const svg = d3.select(DOM.svg(width, height));
+  const svg = d3.select("#trends").append("svg").style("width", "100%");
   
   const ttWidth = 200
   const ttHeight = 20
@@ -504,14 +511,14 @@ slider({
     .data(huh)
     .enter().append("g");
   */
-  /*const meddata = nycCD.features
+/*  const meddata = nycCD.features
                        .filter(d => +d.properties.boro_cd == +cd)[0]
                        .properties
-                       .median[agency][fireCat].slice(1)*/
-/*  
+                       .median[agency][fireCat].slice(1)
+  */
   let serie = svg.append('g')
     .selectAll("g")
-    .data(trends.filter(d=>d.icg==fireCat))
+    .data((await trends).filter(d=>d.icg==fireCat))
     .enter().append("g");
   
   serie.append("path")
@@ -526,7 +533,7 @@ slider({
                                 (+d.CD >= +cd && +d.CD < (+cd + 100) ? 
                                    null  : "none"));
   
-  const meddata = trends.filter(d => +d.CD == +cd).filter(d => d.icg == fireCat)
+  const meddata = (await trends).filter(d => +d.CD == +cd).filter(d => d.icg == fireCat)
   let medcurve = svg.append("g").append("path")
       .style("fill", "none")
       .style("stroke-width", 5) // d => (+d.cd==+cd) ? 5 : 0.5)
@@ -540,12 +547,12 @@ slider({
           //                      (+d.cd >= +cd && +d.cd < (+cd + 100) ? 
             //                       null  : "none"));
 //console.log(nycCD.features.filter(d => +d.properties.boro_cd == +cd)[0].properties.median[agency][fireCat])
-  const totalcalls = recordNumbers.filter(filterByCD2, cd).filter(filterByCat, fireCat) //(d=>fireCat==d.icg)
-                      .reduce((sum, d) => sum += +d.count, 0)
-  const median = nycCD.features.filter(d=>+d.properties.boro_cd==+cd)[0].properties.median[agency][fireCat] 
-  const ninetyPct = quantileFromHistogram(pct, filterData, cd);
-  const average = recordNumbers.filter(filterByCD2, cd).filter(filterByCat, fireCat) //(d=>fireCat==d.icg)
-                    .reduce((sum, d) => sum += +d.count * +d.avg, 0)/totalcalls
+//  const totalcalls = recordNumbers.filter(filterByCD2, cd).filter(filterByCat, fireCat) //(d=>fireCat==d.icg)
+//                      .reduce((sum, d) => sum += +d.count, 0)
+//  const median = nycCD.features.filter(d=>+d.properties.boro_cd==+cd)[0].properties.median[agency][fireCat] 
+//  const ninetyPct = quantileFromHistogram(pct, filterData, cd);
+//  const average = recordNumbers.filter(filterByCD2, cd).filter(filterByCat, fireCat) //(d=>fireCat==d.icg)
+//                    .reduce((sum, d) => sum += +d.count * +d.avg, 0)/totalcalls
 
   
   const indicators = [] //[ninetyNote, ninetyLine, medianNote, medianLine, averageNote, averageLine, serie]
@@ -558,7 +565,7 @@ slider({
       .append("text")
       .attr('font-family', 'sans-serif')
       .attr('font-size', '12px')
-      .attr("transform",`translate(${(width - margin.left - margin.right)/2 + margin.left}, 30)`)
+      .attr("transform",`translate(${(window.innerWidth - margin.left - margin.right)/2 + margin.left}, 30)`)
       .attr("fill","black")
       .attr("align","center")
       .style("text-anchor", "middle")
@@ -605,7 +612,7 @@ slider({
   svg.append("g")
     .attr("class", "brush")
     .call(d3.brushX()
-        .extent([[0, 0], [width, height]])
+        .extent([[0, 0], [window.innerWidth, height]])
         .on("end", brushended));
 
 function brushended() {
@@ -631,8 +638,8 @@ function brushended() {
     });
   };
   
-  return svg.node();
-  */
+  
+}
 
 //  d3.selection.prototype.moveToFront = function() {  
 //    return this.each(function(){
@@ -691,18 +698,18 @@ async function updateHist() {
         .text(dataSets.count))
 
   const bar = gBar.selectAll("rect")
-    .data(filterdata)
+    .data(filterdata, d=>d.timebin)
 
-  bar.exit().remove()
-  bar.transition().duration(150)
-    .attr("height", d => y2(0) - y2(d.count))
-    .style("fill", "gray")
-    .attr("x", d => x2(d.timebin) +1  )
-    .attr("y", d => y2(d.count))
+  bar.exit() 
+    .remove()
 
   bar.enter().append("rect")
     .attr("x", d => x2(d.timebin) +1  )
     .attr("width", d => x2(.975*binsize)-x2(.025*binsize))
+    .attr("y", d=>y2(0))
+    .attr("height", d=>0.001)
+    .merge(bar)
+    .transition().duration(150)
     .attr("y", d => y2(d.count))
     .attr("height", d => y2(0) - y2(d.count))
  
@@ -2161,3 +2168,4 @@ function input(config) {
 */
 makeMap(nycCD);
 makeHist();
+makeTrends();
