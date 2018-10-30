@@ -1,8 +1,5 @@
-// URL: https://beta.observablehq.com/d/46e43adf74f9a8a9
-// Title: ADD TRENDS: NYC emergency response times and Local Law 119
 // Author: Chris Prince (@cmprince)
-// Version: 5943
-// Runtime version: 1
+// Based on notebook at: https://beta.observablehq.com/d/46e43adf74f9a8a9
 
 //require("d3-format")
 //const L = require('leaflet@1.2.0')
@@ -112,11 +109,11 @@ function catGraphUpdates () {
     legend.transition().duration(1000).call(d3.axisBottom(legendX)
       .tickSize(13)
       .tickValues(d3.range(...domains[agency], 50)))
+
 }
 
-//const these until I get the layout right
-//let fireCat = "Segment 1"
 let agency = revLLCats[fireCat]
+//const these until I get the layout right
 let pct = 0.90
 
 // The width of the bins in seconds.
@@ -270,11 +267,6 @@ let color = d3.scaleQuantize()
   .range(colorSchemes[agency])
 
 // Axes and scaling functions
-// function linea(d){
-//     return d3.line()
-//         .x(d => x2(+d.timebin))
-//         .y(d => y3(+d.cdf))
-// }
 let linea = d3.line()
     .x(d=>x2(+d.timebin))
     .y(d=>y3(+d.cdf))
@@ -497,6 +489,11 @@ slider({
       name: "trend",
       inputs: ["d3","DOM","width","height","mytooltip","trends","fireCat","cd","lineaDate","recordNumbers","filterByCD2","filterByCat","nycCD","agency","quantileFromHistogram","pct","filterData","dateAxis","margin","medianAxis","x2","binsize","dateScale"],
       value: (function(d3,DOM,width,height,mytooltip,trends,fireCat,cd,lineaDate,recordNumbers,filterByCD2,filterByCat,nycCD,agency,quantileFromHistogram,pct,filterData,dateAxis,margin,medianAxis,x2,binsize,dateScale)*/
+async function updateTrends() {
+
+
+}
+
 async function makeTrends() {
   //console.log(width, height)
   const svg = d3.select("#trends").append("svg").style("width", "100%");
@@ -559,7 +556,7 @@ async function makeTrends() {
   const tips = [] //[tooltip, counttip, moreThanTip, lessThanTip, totaltip]
   
   const dateAx = svg.append("g")
-      .attr('class', "xAxis")
+//      .attr('class', "xAxis")
   
   dateAx.call(dateAxis)
       .append("text")
@@ -593,8 +590,8 @@ async function makeTrends() {
 
     for (let t of tips) {t.setVisibility(null)}
     for (let e of indicators) {e.style("display", "none")}
-    dateAxis.style("opacity", 0.2)
-    medianAxis.style("opacity", 0.2)
+    dateAx.style("opacity", 0.2)
+    medianAx.style("opacity", 0.2)
   })
   
   svg.on("mouseout", () => {
@@ -697,10 +694,14 @@ async function updateHist() {
         .attr("font-weight", "bold")
         .text(dataSets.count))
 
-  const bar = gBar.selectAll("rect")
+  xAx = d3.select('.xAxis').call(xAxis)
+//  xAx.transition().duration(1000).call(xAxis)
+  
+  const bar = gBar
+    .selectAll("rect")
     .data(filterdata, d=>d.timebin)
 
-  bar.exit() 
+  bar.exit() //.transition().duration(150)
     .remove()
 
   bar.enter().append("rect")
@@ -710,6 +711,8 @@ async function updateHist() {
     .attr("height", d=>0.001)
     .merge(bar)
     .transition().duration(150)
+    .attr("x", d => x2(d.timebin) +1  )
+    .attr("width", d => x2(.975*binsize)-x2(.025*binsize))
     .attr("y", d => y2(d.count))
     .attr("height", d => y2(0) - y2(d.count))
  
@@ -750,7 +753,7 @@ async function updateHist() {
   const tips = [tooltip, counttip, moreThanTip, lessThanTip, totaltip]
 
   const timeAxis = d3.select('.xAxis')
-  timeAxis.call(xAxis)
+  //timeAxis.call(xAxis)
   const countAxis = d3.select('.yAxis1')
   countAxis.call(yAxis2)
 
@@ -868,9 +871,7 @@ async function updateHist() {
 }
 
 async function makeHist() {
-  //console.log(width, height)
   let histMode = true //histogram or cdf display
-  //const svg = d3.select("#histogram").append("svg").style("width", "100%"); //DOM.svg(width, height));
   
   let filterdata = await fd(dataSets);
 
@@ -906,60 +907,6 @@ async function makeHist() {
     .style("fill", "none")
     .style("display", "none")
     .attr("id", "countLine");
- 
-//   const bar = gBar
-//     .selectAll("rect")
-//     .data(filterdata)
-//     .enter().append("rect")
-//   //.style("fill", d=> d.timebin<300 ? "#353" : d.timebin<600? "#992" : "#a55")
-//     .attr("x", d => x2(d.timebin) +1  )
-//     .attr("width", d => x2(.975*binsize)-x2(.025*binsize))
-//     .attr("y", d => y2(d.count))
-//     .attr("height", d => y2(0) - y2(d.count))
-//  
-//   const cdf = await cdfs
-//   let serie =gPath 
-//     .selectAll("g")
-//     .data(cdf.filter(d=>d.month=="").filter(d=>d.icg==fireCat))
-//     .enter().append("g");
-//   
-//   serie.append("path")
-//       .attr("fill", "none")
-//       .style("stroke-width", d => (+d.CD==+cd) ? 5 : 0.5)
-//       .attr("stroke-linejoin", "round")
-//       .attr("stroke-linecap", "round")
-//       .style("stroke", d => (+d.CD==+cd) ? "#fcf" : "#ddd")
-//       .attr("d", d => linea(d.cdf||0))
-//       .style("display", d => +cd == "" ? null : +cd%100 ? 
-//                                 (+d.CD%100 ? null : "none") :
-//                                 (+d.CD >= +cd && +d.CD < (+cd + 100) ? 
-//                                    null  : "none"));
-
-//    const recordnumbers = await recordNumbers
-//    const totalcalls = recordnumbers.filter(filterByCD2, cd).filter(filterByCat, fireCat) //(d=>fireCat==d.icg)
-//                        .reduce((sum, d) => sum += +d.count, 0);
-  
-//  try {
-//   const medobj = (await nycCD).features.filter(d=>+d.properties.boro_cd==+cd)[0]
-//                     .properties.median[agency][fireCat]
-//   const median = medobj.length ? medobj[0].median : NaN
-//    const median = nycCD.features.filter(d=>+d.properties.boro_cd==+cd)[0]
-//                    .properties.median[agency][fireCat][0]
-//                    .median; 
-//   }
-// catch (e) {
-//    const median = NaN
-//    }
-  
-  //console.log(median)
-  
-//    const ninetyPct = await quantileFromHistogram(pct, filterdata, cd, fireCat);
-//    const average = recordnumbers.filter(filterByCD2, cd).filter(filterByCat, fireCat) //(d=>fireCat==d.icg)
-//                      .reduce((sum, d) => sum += +d.count * +d.avg, 0)/totalcalls
-
-//   totaltip.setText(d3.format(",")(totalcalls) + " total calls")
-//   totaltip.setPosition(x2(binsize*numbins),y3(0.9))
-//   totaltip.setVisibility("none")
  
   const average = 20
   const ninetyPct = 0
