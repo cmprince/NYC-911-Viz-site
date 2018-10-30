@@ -33,6 +33,7 @@ const revLLCats = Object.keys(LLCategories).reduce((acc, propName) =>
   }, acc), {})
 
 let fireCat = LLCategories["FDNY"][0]
+let showLocations = false;
 
 //Populate the select box
 let catSelector = document.getElementById('CategoryBox')
@@ -56,6 +57,12 @@ catSelector.onchange = function () {
     catGraphUpdates()
     updateHist()
     updateTrends()
+}
+
+let locCheck = document.getElementById('FDNYLocations')
+locCheck.onchange = function() {
+    const fdnyLocs = d3.select("#map-container").selectAll("circle")
+    fdnyLocs.style("display", this.checked ? null : "none")
 }
 
 function catGraphUpdates () {
