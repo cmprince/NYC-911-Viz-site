@@ -509,7 +509,7 @@ async function updateTrends() {
       .attr("stroke-linejoin", "round")
       .attr("stroke-linecap", "round")
       .style("stroke", d => (+d.CD==+cd) ? "#fcf" : "#ddd")
-      .attr("d", d => lineaDate(d.trend))
+      .attr("d", d => lineaDate(d.trend.filter(e=>e.median>0)))
       .style("display", d => +cd == "" ? null : +cd%100 ? 
                                 (+d.CD%100 ? null : "none") :
                                 (+d.CD >= +cd && +d.CD < (+cd + 100) ? 
@@ -578,6 +578,8 @@ async function makeTrends() {
   })
   
   svgTrends.on("mouseout", () => {
+    dateAx.style("opacity", 1)
+    medianAx.style("opacity", 1)
   })
   
   svgTrends.on("mousemove", () => {
@@ -1247,13 +1249,18 @@ async function makeMap(theData){
           //updateHist()
         }
   });
+
+  (await fdnyLocations).forEach(function(d) {
+    d.LatLng = new L.LatLng(d.Latitude, d.Longitude)})
   
   const fdnyLocs = g.selectAll('circle')
-		.data(fdnyLocations).enter()
+		.data((await fdnyLocations)).enter()
 		.append("circle")
-		.attr("r", "3px")
-		.attr("fill", "#696")
-    .attr("fill-opacity", 0.9)
+		.attr("r", "2px")
+        .attr("stroke-width", "2.5px")
+        .attr("stroke", "green")
+		.attr("fill", "none")
+    .attr("stroke-opacity", 0.5)
     .style("display", "none") //showFDNYLocations ? "inherit" : "none")
     .attr("transform", 
 				function(d) { 
