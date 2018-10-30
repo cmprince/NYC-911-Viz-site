@@ -55,6 +55,7 @@ catSelector.onchange = function () {
     dataCat = justCat()
     catGraphUpdates()
     updateHist()
+    updateTrends()
 }
 
 function catGraphUpdates () {
@@ -489,36 +490,20 @@ slider({
       name: "trend",
       inputs: ["d3","DOM","width","height","mytooltip","trends","fireCat","cd","lineaDate","recordNumbers","filterByCD2","filterByCat","nycCD","agency","quantileFromHistogram","pct","filterData","dateAxis","margin","medianAxis","x2","binsize","dateScale"],
       value: (function(d3,DOM,width,height,mytooltip,trends,fireCat,cd,lineaDate,recordNumbers,filterByCD2,filterByCat,nycCD,agency,quantileFromHistogram,pct,filterData,dateAxis,margin,medianAxis,x2,binsize,dateScale)*/
+
+const svgTrends = d3.select("#trends").append("svg").style("width", "100%");
+const gTrends = svgTrends.append("g")
 async function updateTrends() {
 
-
-}
-
-async function makeTrends() {
-  //console.log(width, height)
-  const svg = d3.select("#trends").append("svg").style("width", "100%");
-  
-  const ttWidth = 200
-  const ttHeight = 20
-  
-  const tooltip = new mytooltip({context: svg})
-  
-  /*let serie = svg.append('g')
-    .selectAll("g")
-    .data(huh)
-    .enter().append("g");
-  */
-/*  const meddata = nycCD.features
-                       .filter(d => +d.properties.boro_cd == +cd)[0]
-                       .properties
-                       .median[agency][fireCat].slice(1)
-  */
-  let serie = svg.append('g')
-    .selectAll("g")
+  let serie = gTrends 
+    .selectAll("path")
     .data((await trends).filter(d=>d.icg==fireCat))
-    .enter().append("g");
   
-  serie.append("path")
+  serie.exit().remove()
+
+  serie.enter()
+      .append("path")
+      .merge(serie)
       .attr("fill", "none")
       .style("stroke-width", d => (+d.CD==+cd) ? 5 : 0.5)
       .attr("stroke-linejoin", "round")
@@ -530,32 +515,30 @@ async function makeTrends() {
                                 (+d.CD >= +cd && +d.CD < (+cd + 100) ? 
                                    null  : "none"));
   
-  const meddata = (await trends).filter(d => +d.CD == +cd).filter(d => d.icg == fireCat)
-  let medcurve = svg.append("g").append("path")
-      .style("fill", "none")
-      .style("stroke-width", 5) // d => (+d.cd==+cd) ? 5 : 0.5)
-      .attr("stroke-linejoin", "round")
-      .attr("stroke-linecap", "round")
-      .style("stroke", "#000") //d => (+d.cd==+cd) ? "#fcf" : "#ddd")
-      .attr("d", lineaDate(meddata)) //d => {console.log(d, lineaDate(d)); return lineaDate(d) })
-      .style("display", null)
-      //.style("display", d => +cd == "" ? null : +cd%100 ? 
-        //                        (+d.cd%100 ? null : "none") :
-          //                      (+d.cd >= +cd && +d.cd < (+cd + 100) ? 
-            //                       null  : "none"));
-//console.log(nycCD.features.filter(d => +d.properties.boro_cd == +cd)[0].properties.median[agency][fireCat])
-//  const totalcalls = recordNumbers.filter(filterByCD2, cd).filter(filterByCat, fireCat) //(d=>fireCat==d.icg)
-//                      .reduce((sum, d) => sum += +d.count, 0)
-//  const median = nycCD.features.filter(d=>+d.properties.boro_cd==+cd)[0].properties.median[agency][fireCat] 
-//  const ninetyPct = quantileFromHistogram(pct, filterData, cd);
-//  const average = recordNumbers.filter(filterByCD2, cd).filter(filterByCat, fireCat) //(d=>fireCat==d.icg)
-//                    .reduce((sum, d) => sum += +d.count * +d.avg, 0)/totalcalls
+//  const meddata = (await trends).filter(d => +d.CD == +cd).filter(d => d.icg == fireCat)
+//  let medcurve = svgTrends.append("g").append("path")
+//      .style("fill", "none")
+//      .style("stroke-width", 5) // d => (+d.cd==+cd) ? 5 : 0.5)
+//      .attr("stroke-linejoin", "round")
+//      .attr("stroke-linecap", "round")
+//      .style("stroke", "#000") //d => (+d.cd==+cd) ? "#fcf" : "#ddd")
+//      .attr("d", lineaDate(meddata)) //d => {console.log(d, lineaDate(d)); return lineaDate(d) })
+//      .style("display", null)
 
+}
+
+async function makeTrends() {
+  //console.log(width, height)
   
+  const ttWidth = 200
+  const ttHeight = 20
+  
+  const tooltip = new mytooltip({context: svgTrends})
+
   const indicators = [] //[ninetyNote, ninetyLine, medianNote, medianLine, averageNote, averageLine, serie]
   const tips = [] //[tooltip, counttip, moreThanTip, lessThanTip, totaltip]
   
-  const dateAx = svg.append("g")
+  const dateAx = svgTrends.append("g")
 //      .attr('class', "xAxis")
   
   dateAx.call(dateAxis)
@@ -568,7 +551,7 @@ async function makeTrends() {
       .style("text-anchor", "middle")
       .text('months');
   
-  const medianAx = svg.append("g")
+  const medianAx = svgTrends.append("g")
       .attr('class', "yAxis1")
   
   medianAx.call(medianAxis)
@@ -582,8 +565,8 @@ async function makeTrends() {
     
   //if (cd%100) { serie.filter(d=>+d.cd==+cd).moveToFront() }
   
-  svg.on("mouseover", () => {  
-    const [xCoord, yCoord] = d3.mouse(svg.node());
+  svgTrends.on("mouseover", () => {  
+    const [xCoord, yCoord] = d3.mouse(svgTrends.node());
     const top = yCoord > height - margin.bottom;
     const hoverSecs = x2.invert(xCoord);
     const hoverBin = hoverSecs - hoverSecs % binsize;
@@ -594,11 +577,11 @@ async function makeTrends() {
     medianAx.style("opacity", 0.2)
   })
   
-  svg.on("mouseout", () => {
+  svgTrends.on("mouseout", () => {
   })
   
-  svg.on("mousemove", () => {
-    const [xCoord, yCoord] = d3.mouse(svg.node());
+  svgTrends.on("mousemove", () => {
+    const [xCoord, yCoord] = d3.mouse(svgTrends.node());
     const top = yCoord > height - margin.bottom;
     const hoverSecs = x2.invert(xCoord);
     const hoverBin = hoverSecs - hoverSecs % binsize;
@@ -606,7 +589,7 @@ async function makeTrends() {
     let yPosition = height-40 //d3.mouse(this)[1] - (ttHeight + 5);
   })
 
-  svg.append("g")
+  svgTrends.append("g")
     .attr("class", "brush")
     .call(d3.brushX()
         .extent([[0, 0], [window.innerWidth, height]])
@@ -628,7 +611,8 @@ function brushended() {
 }
   
   //svg.on("click", () => { histMode = !histMode; console.log(histMode) })
-  
+  updateTrends() 
+
   d3.selection.prototype.moveToFront = function() {  
     return this.each(function(){
       this.parentNode.appendChild(this);
@@ -1171,6 +1155,7 @@ async function makeMap(theData){
       .on("click", function(d){
         cd = d.CD
         updateHist();
+        updateTrends();
         hoverOn = false;
         g.selectAll('path').transition(t).call(reColor)
         g.selectAll('path')
@@ -1187,6 +1172,7 @@ async function makeMap(theData){
               .call(selectColor);
           cd = d.CD;
           updateHist()
+          updateTrends();
           g.selectAll('path')
             .filter(function(e) {return (e.properties.boro_cd > +d.CD & e.properties.boro_cd < +d.CD + 100) })
             .transition(t)
@@ -1199,6 +1185,7 @@ async function makeMap(theData){
               .call(boxColor);
         cd = "";
         updateHist()
+        updateTrends();
         g.selectAll('path')
           .transition(t)
             .call(reColor)
@@ -1227,6 +1214,7 @@ async function makeMap(theData){
     .on("click", function(d){
         cd = d.properties.boro_cd
         updateHist()
+        updateTrends();
         hoverOn = false;    // When clicking a path, turn off hover events
         g.selectAll('path').transition(t).call(reColor)
         boroboxes.selectAll('rect').transition(t).call(boxColor)
@@ -1249,6 +1237,7 @@ async function makeMap(theData){
               cdDescriptor.style("display", null)
               cdDescriptor.transition(t).style("fill-opacity", 1)
               updateHist()
+              updateTrends();
     }}})       
     .on("mouseleave", 
         function(d){ if(hoverOn){
@@ -1310,6 +1299,7 @@ async function makeMap(theData){
     cdDescriptor.style("display", "none")
     cdDescriptor.selectAll("text").text("")
     updateHist();
+    updateTrends();
   }})
   
   // Turn hover mode back on when clicking anywhere in the map (ignored when clicked in paths
@@ -1322,6 +1312,7 @@ async function makeMap(theData){
     cdDescriptor.selectAll("text").text("")
     cdDescriptor.transition(t).style("fill-opacity", 0.001);
     updateHist();
+    updateTrends();
   })
   map.on("viewreset zoom", reset);
  // map.on("move", (e) => { //debugger;
