@@ -1,11 +1,6 @@
 // Author: Chris Prince (@cmprince)
 // Based on notebook at: https://beta.observablehq.com/d/46e43adf74f9a8a9
 
-//require("d3-format")
-//const L = require('leaflet@1.2.0')
-// require('https://bundle.run/soda-js@0.2.3')
-// const consumer = new soda.Consumer('data.cityofnewyork.us')
-
 // Data that has already been downloaded or processed
 const boroData = [{'borough':'Manhattan', 'CD':'100'},
             {'borough':'Bronx', 'CD':'200'},
@@ -349,7 +344,7 @@ let yAxis3 = g => g
 let t = () => d3.transition()
                             .duration(250)
                             .ease(d3.easeLinear)
-let reColor = d  =>  d.style('stroke', "#bbb")
+let reColor = d  =>  d.style('stroke', "#aaa")
                             .style('stroke-width', "1px")
                             .style("fill", function(d) { 
                               try {
@@ -426,80 +421,11 @@ class mytooltip {
 }
 
 
-/*
-    {
-      name: "viewof agency",
-      inputs: ["radio"],
-      value: (function(radio){return(
-radio({
-  title: 'Reporting agency',
-  options: [
-    { label: 'FDNY', value: 'FDNY' },
-    { label: 'EMS', value: 'EMS' },
-  ],
-  value: 'EMS'
-})
-)})
-    },
-    {
-      name: "agency",
-      inputs: ["Generators","viewof agency"],
-      value: (G, _) => G.input(_)
-    },
-    {
-      name: "viewof pct",
-      inputs: ["slider"],
-      value: (function(slider){return(
-slider({
-  min: 0.01, 
-  max: 0.99, 
-  step: 0.01,
-  value: 0.90,
-  format: "0.0%",
-  title: "Percentile",
-  description: "Adjusts the red Percentile indicator below"
-})
-)})
-    },
-    {
-      name: "pct",
-      inputs: ["Generators","viewof pct"],
-      value: (G, _) => G.input(_)
-    },
-    {
-      name: "viewof fireCat",
-      inputs: ["agency","select","LLCategories"],
-      value: (function(agency,select,LLCategories){return(
-(agency=="FDNY") 
-  ? select({
-      title: "FDNY classifications",
-      description: "LL119 categories",
-      options: LLCategories['FDNY'], //["All", ...LLCategories['FDNY']],
-      value: "Structural Fires"
-    })
-  : select({
-      title: "EMS classifications",
-      description: "LL119 categories",
-      options: LLCategories['EMS'], //["All", ...LLCategories['EMS']],
-      value: "Segment 1"
-    })
-)})
-    },
-    {
-      name: "fireCat",
-      inputs: ["Generators","viewof fireCat"],
-      value: (G, _) => G.input(_)
-    },*/
-
-//TODO: this is the trend chart that needs to be included
-/*
-    {
-      name: "trend",
-      inputs: ["d3","DOM","width","height","mytooltip","trends","fireCat","cd","lineaDate","recordNumbers","filterByCD2","filterByCat","nycCD","agency","quantileFromHistogram","pct","filterData","dateAxis","margin","medianAxis","x2","binsize","dateScale"],
-      value: (function(d3,DOM,width,height,mytooltip,trends,fireCat,cd,lineaDate,recordNumbers,filterByCD2,filterByCat,nycCD,agency,quantileFromHistogram,pct,filterData,dateAxis,margin,medianAxis,x2,binsize,dateScale)*/
-
 const svgTrends = d3.select("#trends").append("svg").style("width", "100%");
 const gTrends = svgTrends.append("g")
+const monthTip = new mytooltip({context: svgTrends})
+monthTip.tip.append("circle").attr('r',5)
+
 async function updateTrends() {
 
   let serie = gTrends 
@@ -512,15 +438,25 @@ async function updateTrends() {
       .append("path")
       .merge(serie)
       .attr("fill", "none")
-      .style("stroke-width", d => (+d.CD==+cd) ? 5 : 0.5)
       .attr("stroke-linejoin", "round")
       .attr("stroke-linecap", "round")
-      .style("stroke", d => (+d.CD==+cd) ? "#fcf" : "#ddd")
       .attr("d", d => lineaDate(d.trend.filter(e=>e.median>0)))
       .style("display", d => +cd == "" ? null : +cd%100 ? 
                                 (+d.CD%100 ? null : "none") :
                                 (+d.CD >= +cd && +d.CD < (+cd + 100) ? 
-                                   null  : "none"));
+                                   null  : "none"))
+      .transition().duration(150)
+      .style("stroke", d => (+d.CD==+cd) ? "#fcf" : "#ddd")
+      .style("stroke-width", d => (+d.CD==+cd) ? "5px" : "0.5px")
+
+  
+  d3.selection.prototype.moveToFront = function() {  
+    return this.each(function(){
+      this.parentNode.appendChild(this);
+    });
+  };
+
+    serie.filter(d=>d.CD==cd).moveToFront()
   
 //  const meddata = (await trends).filter(d => +d.CD == +cd).filter(d => d.icg == fireCat)
 //  let medcurve = svgTrends.append("g").append("path")
@@ -540,10 +476,9 @@ async function makeTrends() {
   const ttWidth = 200
   const ttHeight = 20
   
-  const tooltip = new mytooltip({context: svgTrends})
 
   const indicators = [] //[ninetyNote, ninetyLine, medianNote, medianLine, averageNote, averageLine, serie]
-  const tips = [] //[tooltip, counttip, moreThanTip, lessThanTip, totaltip]
+  const tips = [monthTip] //[tooltip, counttip, moreThanTip, lessThanTip, totaltip]
   
   const dateAx = svgTrends.append("g")
 //      .attr('class', "xAxis")
@@ -587,13 +522,16 @@ async function makeTrends() {
   svgTrends.on("mouseout", () => {
     dateAx.style("opacity", 1)
     medianAx.style("opacity", 1)
+    for (let t of tips) {t.setVisibility("none")}
+    for (let e of indicators) {e.style("display", null)}
   })
   
   svgTrends.on("mousemove", () => {
     const [xCoord, yCoord] = d3.mouse(svgTrends.node());
     const top = yCoord > height - margin.bottom;
-    const hoverSecs = x2.invert(xCoord);
-    const hoverBin = hoverSecs - hoverSecs % binsize;
+    const hoverMonth = dateScale.invert(xCoord);
+//    const theMonth = hoverSecs - hoverSecs % binsize;
+    console.log(d3.isoFormat(d3.timeMonth.round(hoverMonth)))
     let xPosition = x2(hoverBin + binsize) //d3.mouse(this)[0] - ttWidth/2;
     let yPosition = height-40 //d3.mouse(this)[1] - (ttHeight + 5);
   })
@@ -631,13 +569,13 @@ function brushended() {
   
 }
 
-//  d3.selection.prototype.moveToFront = function() {  
-//    return this.each(function(){
-//      this.parentNode.appendChild(this);
-//    });
-//  };
-
 const svgHist = d3.select("#histogram").append("svg").style("width", "100%"); //DOM.svg(width, height));
+//Add background
+svgHist.append("rect")
+    .attr('fill', '#eee')
+    .style('width', '100%')
+    .style('fill-opacity', 0.92)
+
 const gBar = svgHist.append("g").style("fill", "gray")
 const gPath = svgHist.append("g")
 const counttip = new mytooltip({context: svgHist, ttWidth: 50, align: "end"})
@@ -660,6 +598,12 @@ async function updateHist() {
   const median = medobj.length ? medobj[0].median : NaN
   const ttWidth = 200
   const ttHeight = 20
+
+  d3.selection.prototype.moveToFront = function() {  
+    return this.each(function(){
+      this.parentNode.appendChild(this);
+    });
+  };
 
   totaltip.setText(d3.format(",")(totalcalls) + " total calls")
   totaltip.setPosition(x2(binsize*numbins),y3(0.9))
@@ -718,12 +662,13 @@ async function updateHist() {
 
   serie //.selectAll("path")
       .attr("d", d => linea(d.cdf||0))
-      .style("stroke", d => (+d.CD==+cd) ? "#fcf" : "#ddd")
-      .style("stroke-width", d => (+d.CD==+cd) ? 5 : 0.5)
       .style("display", d => +cd == "" ? null : +cd%100 ? 
                                 (+d.CD%100 ? null : "none") :
                                 (+d.CD >= +cd && +d.CD < (+cd + 100) ? 
                                    null  : "none"))
+      .transition().duration(150)
+      .style("stroke", d => (+d.CD==+cd) ? "#fcf" : "#ccc")
+      .style("stroke-width", d => (+d.CD==+cd) ? "5px" : "0.5px")
 
   serie.enter() //.append("g")
       .append("path")
@@ -732,7 +677,8 @@ async function updateHist() {
       .attr("stroke-linecap", "round")
 
 
-  if (cd%100) { serie.selectAll("path").filter(d=>+d.cd==+cd).moveToFront() }
+  //if (cd%100) { serie.filter(d=>+d.CD==+cd).moveToFront() }
+  serie.filter(d=>+d.CD==+cd).moveToFront()
   
   const hoverLine = d3.selectAll("#hoverLine")
   const countLine = d3.selectAll("#countLine")
@@ -806,7 +752,7 @@ async function updateHist() {
       .transition()
       .duration(150)
       .ease(d3.easeLinear)
-      .style("fill", "gray")
+      .style("fill", "#888")
       .style("stroke", "none")
     for (let t of tips) {t.setVisibility("none")}
     for (let e of indicators) {e.style("display", null)}
@@ -1367,28 +1313,6 @@ async function makeMap(theData){
   }
 }
   
-//TODO: Re-add the fdny location toggle
-/*      
-name: "viewof showFDNYLocations",
-      inputs: ["checkbox"],
-      value: (function(checkbox){return(
-checkbox({
-  options: [
-    { value: 'toggle', label: 'Show FDNY companies on map' }
-  ]//,
-  //value: 'toggle'
-})
-)})
-    },
-    {
-      name: "showFDNYLocations",
-      inputs: ["Generators","viewof showFDNYLocations"],
-      value: (G, _) => G.input(_)
-    },
-    {
-      inputs: ["md"],
-      value: (function(md){return(
-      */
 
 // Here be cells from Observable from when this was a live download
 /*
@@ -1859,265 +1783,6 @@ function download(content, fileName, contentType) {
 download(dataSets, 'dataSets.json', 'text/plain')
 )})*/
 
-// These are imports that will need to be reintroduced.
-/*
-{
-      inputs: ["md"],
-      value: (function(md){return(
-md`## Imports`
-)})
-    },
-    {
-      name: "d3",
-      inputs: ["require"],
-      value: (function(require){return(
-    },
-    {
-      name: "L",
-      inputs: ["require"],
-      value: (function(require){return(
-)})
-    },
-    {
-      from: "@jashkenas/inputs",
-      name: "slider",
-      remote: "slider"
-    },
-    {
-      from: "@jashkenas/inputs",
-      name: "radio",
-      remote: "radio"
-    },
-    {
-      from: "@jashkenas/inputs",
-      name: "select",
-      remote: "select"
-    },
-    {
-      from: "@jashkenas/inputs",
-      name: "checkbox",
-      remote: "checkbox"
-    },
-    {
-      inputs: ["md"],
-      value: (function(md){return(
-md`#### Styling for leaflet layers (renders blank here, see code in cells)`
-)})
-    },
-    {
-      inputs: ["html","resolve"],
-      value: (function(html,resolve){return(
-html`<link href='${resolve('leaflet@1.2.0/dist/leaflet.css')}' rel='stylesheet' />`
-)})
-    },
-    {
-      inputs: ["html"],
-      value: (function(html){return(
-html`<style>
-.leaflet-marker-icon, .leaflet-marker-shadow, .leaflet-image-layer, .leaflet-pane > svg path, .leaflet-tile-container {
-				pointer-events: visible;
-			}
-img.leaflet-tile{
-    pointer-events: none;
-}
-.leaflet-container.crosshair-cursor-enabled {
-    cursor:crosshair;
-}
-</style>`
-)})
-    },
-  ]
-};
-
-const m1 = {
-  id: "@jashkenas/inputs",
-  variables: [
-    {
-      name: "slider",
-      inputs: ["input"],
-      value: (function(input){return(
-function slider(config = {}) {
-  let {value, min = 0, max = 1, step = "any", precision = 2, title, description, format, submit} = config;
-  if (typeof config == "number") value = config;
-  if (value == null) value = (max + min) / 2;
-  precision = Math.pow(10, precision);
-  return input({
-    type: "range", title, description, submit, format,
-    attributes: {min, max, step, value},
-    getValue: input => Math.round(input.valueAsNumber * precision) / precision
-  });
-}
-)})
-    },
-    {
-      name: "radio",
-      inputs: ["input","html"],
-      value: (function(input,html){return(
-function radio(config = {}) {
-  let {value: formValue, title, description, submit, options} = config;
-  if (Array.isArray(config)) options = config;
-  options = options.map(o => typeof o === "string" ? {value: o, label: o} : o);
-  const form = input({
-    type: "radio", title, description, submit, 
-    getValue: input => {
-      const checked = Array.prototype.find.call(input, radio => radio.checked);
-      return checked ? checked.value : undefined;
-    }, 
-    form: html`
-      <form>
-        ${options.map(({value, label}) => `
-          <label style="display: inline-block; margin: 5px 10px 3px 0; font-size: 0.85em;">
-           <input type=radio name=input value="${value}" ${value === formValue ? 'checked' : ''} style="vertical-align: baseline;" />
-           ${label}
-          </label>
-        `)}
-      </form>
-    `
-  });
-  form.output.remove();
-  return form;
-}
-)})
-    },
-    {
-      name: "select",
-      inputs: ["input","html"],
-      value: (function(input,html){return(
-function select(config = {}) {
-  let {
-    value: formValue,
-    title,
-    description,
-    submit,
-    multiple,
-    size,
-    options
-  } = config;
-  if (Array.isArray(config)) options = config;
-  options = options.map(
-    o => (typeof o === "object" ? o : { value: o, label: o })
-  );
-  const form = input({
-    type: "select",
-    title,
-    description,
-    submit,
-    getValue: input => {
-      const selected = Array.prototype.filter
-        .call(input.options, i => i.selected)
-        .map(i => i.value);
-      return multiple ? selected : selected[0];
-    },
-    form: html`
-      <form>
-        <select name="input" ${
-          multiple ? `multiple size="${size || options.length}"` : ""
-        }>
-          ${options.map(
-            ({ value, label }) => `
-            <option value="${value}" ${
-              value === formValue ? "selected" : ""
-            }>${label}</option>
-          `
-          )}
-        </select>
-      </form>
-    `
-  });
-  form.output.remove();
-  return form;
-}
-)})
-    },
-    {
-      name: "checkbox",
-      inputs: ["input","html"],
-      value: (function(input,html){return(
-function checkbox(config = {}) {
-  let { value: formValue, title, description, submit, options } = config;
-  if (Array.isArray(config)) options = config;
-  options = options.map(
-    o => (typeof o === "string" ? { value: o, label: o } : o)
-  );
-  const form = input({
-    type: "checkbox",
-    title,
-    description,
-    submit,
-    getValue: input => {
-      if (input.length)
-        return Array.prototype.filter
-          .call(input, i => i.checked)
-          .map(i => i.value);
-      return input.checked ? input.value : false;
-    },
-    form: html`
-      <form>
-        ${options.map(
-          ({ value, label }) => `
-          <label style="display: inline-block; margin: 5px 10px 3px 0; font-size: 0.85em;">
-           <input type=checkbox name=input value="${value || "on"}" ${
-            (formValue || []).indexOf(value) > -1 ? "checked" : ""
-          } style="vertical-align: baseline;" />
-           ${label}
-          </label>
-        `
-        )}
-      </form>
-    `
-  });
-  form.output.remove();
-  return form;
-}
-)})
-    },
-    {
-      name: "input",
-      inputs: ["html","d3format"],
-      value: (function(html,d3format){return(
-function input(config) {
-  let {form, type = "text", attributes = {}, action, getValue, title, description, format, submit, options} = config;
-  if (!form) form = html`<form>
-	<input name=input type=${type} />
-  </form>`;
-  const input = form.input;
-  Object.keys(attributes).forEach(key => {
-    const val = attributes[key];
-    if (val != null) input.setAttribute(key, val);
-  });
-  if (submit) form.append(html`<input name=submit type=submit style="margin: 0 0.75em" value="${typeof submit == 'string' ? submit : 'Submit'}" />`);
-  form.append(html`<output name=output style="font: 14px Menlo, Consolas, monospace; margin-left: 0.5em;"></output>`);
-  if (title) form.prepend(html`<div style="font: 700 0.9rem sans-serif;">${title}</div>`);
-  if (description) form.append(html`<div style="font-size: 0.85rem; font-style: italic;">${description}</div>`);
-  if (format) format = d3format.format(format);
-  if (action) {
-    action(form);
-  } else {
-    const verb = submit ? "onsubmit" : type == "button" ? "onclick" : type == "checkbox" || type == "radio" ? "onchange" : "oninput";
-    form[verb] = (e) => {
-      e && e.preventDefault();
-      const value = getValue ? getValue(input) : input.value;
-      if (form.output) form.output.value = format ? format(value) : value;
-      form.value = value;
-      if (verb !== "oninput") form.dispatchEvent(new CustomEvent("input"));
-    };
-    if (verb !== "oninput") input.oninput = e => e && e.stopPropagation() && e.preventDefault();
-    if (verb !== "onsubmit") form.onsubmit = (e) => e && e.preventDefault();
-    form[verb]();
-  }
-  return form;
-}
-)})
-    },
-    {
-      name: "d3format",
-      inputs: ["require"],
-      value: (function(require){return(
-)})
-    }
-  ]
-};
-*/
 makeMap(nycCD);
 makeHist();
 makeTrends();
