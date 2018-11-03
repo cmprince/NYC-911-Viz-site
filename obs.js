@@ -530,7 +530,6 @@ async function makeTrends() {
     const [xCoord, yCoord] = d3.mouse(svgTrends.node());
     const top = yCoord > height - margin.bottom;
     const hoverMonth = dateScale.invert(xCoord);
-//    const theMonth = hoverSecs - hoverSecs % binsize;
     console.log(d3.isoFormat(d3.timeMonth.round(hoverMonth)))
     let xPosition = x2(hoverBin + binsize) //d3.mouse(this)[0] - ttWidth/2;
     let yPosition = height-40 //d3.mouse(this)[1] - (ttHeight + 5);
@@ -697,24 +696,28 @@ async function updateHist() {
   countAxis.call(yAxis2)
 
   medianLine
+      .transition(t)
       .attr('x1', x2(median))
       .attr('y1', y3(0))
       .attr('x2', x2(median))
       .attr('y2', y3(0.5)) //margin.top)
   
   averageLine
+      .transition(t)
       .attr('x1', x2(average))
       .attr('y1', y2(0))
       .attr('x2', x2(average))
       .attr('y2', y3(1))
   
   ninetyLine
+      .transition(t)
       .attr('x1', x2(ninetyPct))
       .attr('y1', y2(0))
       .attr('x2', x2(ninetyPct))
       .attr('y2', y3(pct)) //margin.top+60)
 
   medianNote 
+      .transition(t)
       .attr('x', x2(median))
       .attr('text-anchor', (pct>0.45 & pct<0.55)? 'end':'start')
       .attr('transform', `translate(0,${y3(0.5)})`)
@@ -722,11 +725,13 @@ async function updateHist() {
       .text(`${"Median = " + median + " seconds"}`)
   
   averageNote
+      .transition(t)
       .attr('x', x2(average))
       .attr('transform', `translate(0,${y3(1)})`)
       .text(`Average = ${Math.round(average)} seconds`)
   
   ninetyNote
+      .transition(t)
       .attr('x', Math.min(x2(binsize*numbins),x2(ninetyPct)))
       .attr('text-anchor', (x2(ninetyPct) > (window.innerWidth-240))? 'end':'start')
       .attr('transform', `translate(0,${Math.max(Math.min(y3(0.1),y3(pct)),y3(0.9))})`)
