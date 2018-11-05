@@ -50,6 +50,10 @@ select {
     border-radius: 20px 0px 0px 20px;
     background-color: #f1f1f1;
 }
+#percentile {
+    width: 50%;
+}
+
 #legend .domain {
     visibility: hidden;
 }
@@ -73,11 +77,15 @@ body { height: 100%; margin: 0; padding: 0;}
 
 <body>
     <div id="map-container"></div>
-    <div id="histogram"></div>
+    <div id="histogram">
+        <label for "percentile">Percentile</label>
+        <input type="range" id="percentile" name="percentile" min="0.01" max="0.99" step="0.01" value="0.90"/>
+    </div>
     <div id="trends" style="fill:'gray'"></div>
     <div id="selection-controls">
         <select id="CategoryBox"></select>
         <input type="checkbox" id="FDNYLocations"><label for="FDNYLocations">Show FDNY Locations</label></input>
+ 
 	</div>
     <script src="./obs.js"></script>
 </body>

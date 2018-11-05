@@ -117,7 +117,6 @@ function catGraphUpdates () {
 
 let agency = revLLCats[fireCat]
 //const these until I get the layout right
-let pct = 0.90
 
 // The width of the bins in seconds.
 const binsizes = new Object({FDNY: 15, EMS: 30})
@@ -420,6 +419,15 @@ class mytooltip {
   }
 }
 
+let pct = 0.90
+
+//Get the percentile
+let percentSetter = document.getElementById('percentile')
+percentSetter.oninput = async function () {
+    pct = this.value
+    updateHist()
+}
+
 
 const svgTrends = d3.select("#trends").append("svg").style("width", "100%");
 const gTrends = svgTrends.append("g")
@@ -531,7 +539,7 @@ async function makeTrends() {
     const top = yCoord > height - margin.bottom;
     const hoverMonth = dateScale.invert(xCoord);
     console.log(d3.isoFormat(d3.timeMonth.round(hoverMonth)))
-    let xPosition = x2(hoverBin + binsize) //d3.mouse(this)[0] - ttWidth/2;
+    let xPosition = x2(hoverMonth + binsize) //d3.mouse(this)[0] - ttWidth/2;
     let yPosition = height-40 //d3.mouse(this)[1] - (ttHeight + 5);
   })
 
@@ -630,8 +638,9 @@ async function updateHist() {
         .attr("font-weight", "bold")
         .text(dataSets.count))
 
-  xAx = d3.select('.xAxis').call(xAxis)
-//  xAx.transition().duration(1000).call(xAxis)
+  xAx = d3.select('.xAxis') //.call(xAxis)
+  xAx.transition().duration(1000)
+    .call(d3.axisBottom(x2).tickSizeOuter(0))
   
   const bar = gBar
     .selectAll("rect")
@@ -665,7 +674,7 @@ async function updateHist() {
                                 (+d.CD%100 ? null : "none") :
                                 (+d.CD >= +cd && +d.CD < (+cd + 100) ? 
                                    null  : "none"))
-      .transition().duration(150)
+      //.transition().duration(150)
       .style("stroke", d => (+d.CD==+cd) ? "#fcf" : "#ccc")
       .style("stroke-width", d => (+d.CD==+cd) ? "5px" : "0.5px")
 
@@ -719,9 +728,9 @@ async function updateHist() {
   medianNote 
       .transition(t)
       .attr('x', x2(median))
-      .attr('text-anchor', (pct>0.45 & pct<0.55)? 'end':'start')
+      .attr('text-anchor', (pct>0.4 & pct<0.6)? 'end':'start')
       .attr('transform', `translate(0,${y3(0.5)})`)
-      .attr("dx", `${0.2 * ((pct>0.45 & pct<0.55)?-1:1)}em`)
+      .attr("dx", `${0.2 * ((pct>0.4 & pct<0.6)?-1:1)}em`)
       .text(`${"Median = " + median + " seconds"}`)
   
   averageNote
