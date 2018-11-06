@@ -479,6 +479,10 @@ const medianTip = new mytooltip({context: svgTrends})
 const monthTip = new mytooltip({context: svgTrends})
 const medianCircle = new mytooltip({context: svgTrends})
 medianCircle.tip.append("circle").attr('r',5)
+svgTrends.append("rect")
+    .attr('fill', '#111')
+    .style('width', '100%')
+    .style('fill-opacity', 0.08)
 
 async function updateTrends() {
 
@@ -622,9 +626,9 @@ function brushended() {
 const svgHist = d3.select("#histogram").append("svg").style("width", "100%"); //DOM.svg(width, height));
 //Add background
 svgHist.append("rect")
-    .attr('fill', '#eee')
+    .attr('fill', '#111')
     .style('width', '100%')
-    .style('fill-opacity', 0.92)
+    .style('fill-opacity', 0.08)
 
 const gBar = svgHist.append("g").style("fill", "gray")
 const gPath = svgHist.append("g")
