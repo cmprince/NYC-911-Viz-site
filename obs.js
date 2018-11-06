@@ -475,8 +475,10 @@ percentSetter.oninput = async function () {
 
 const svgTrends = d3.select("#trends").append("svg").style("width", "100%");
 const gTrends = svgTrends.append("g")
+const medianTip = new mytooltip({context: svgTrends})
 const monthTip = new mytooltip({context: svgTrends})
-//monthTip.tip.append("circle").attr('r',5)
+const medianCircle = new mytooltip({context: svgTrends})
+medianCircle.tip.append("circle").attr('r',5)
 
 async function updateTrends() {
 
@@ -520,7 +522,7 @@ async function makeTrends() {
   
 
   const indicators = [] //[ninetyNote, ninetyLine, medianNote, medianLine, averageNote, averageLine, serie]
-  const tips = [monthTip] //[tooltip, counttip, moreThanTip, lessThanTip, totaltip]
+  const tips = [medianTip, monthTip, medianCircle] //[tooltip, counttip, moreThanTip, lessThanTip, totaltip]
   
   const dateAx = svgTrends.append("g")
 //      .attr('class', "xAxis")
@@ -572,13 +574,16 @@ async function makeTrends() {
     const [xCoord, yCoord] = d3.mouse(svgTrends.node());
     const top = yCoord > height - margin.bottom;
     const hoverMonth = dateScale.invert(xCoord);
-    const theMonth = d3.timeFormat("%Y-%m")(d3.timeMonth.round(hoverMonth))
+    const theMonth = d3.timeMonth.round(hoverMonth)
     const theTrend = (await trends).filter(d=>d.CD==cd).filter(d=>d.icg==fireCat)[0].trend
-    const theValue = theTrend.filter(d=>d.month.slice(0,7)==theMonth)[0].median
+    const theValue = theTrend.filter(d=>d.month.slice(0,7)==d3.timeFormat("%Y-%m")(theMonth))[0].median
     let xPosition = dateScale(d3.isoParse(theMonth)) //d3.mouse(this)[0] - ttWidth/2;
     let yPosition = medianScale(theValue) //d3.mouse(this)[1] - (ttHeight + 5);
-    monthTip.setPosition(xPosition, yPosition)
-    monthTip.setText(theValue)
+    medianTip.setPosition(xPosition, yPosition -15)
+    medianCircle.setPosition(xPosition, yPosition)
+    medianTip.setText(theValue)
+    monthTip.setPosition(xPosition, medianScale(150)+15)
+    monthTip.setText(d3.timeFormat("%b %Y")(theMonth))
   })
 
   svgTrends.append("g")
