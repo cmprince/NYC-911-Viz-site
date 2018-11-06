@@ -1,7 +1,11 @@
 // Author: Chris Prince (@cmprince)
 // Based on notebook at: https://beta.observablehq.com/d/46e43adf74f9a8a9
 
-// Data that has already been downloaded or processed
+
+/*
+ *  Data that has already been downloaded or processed
+ */
+
 const boroData = [{'borough':'Manhattan', 'CD':'100'},
             {'borough':'Bronx', 'CD':'200'},
             {'borough':'Brooklyn', 'CD':'300'},
@@ -15,6 +19,10 @@ const cdfs = d3.json("./cdfs.json")
 const dataSets = d3.json("./dataSets.json")
 const recordNumbers = d3.json("./recordNumbers.json")
 
+/*
+ *  Constants for UI and categorization
+ */
+
 const margin = {top: 5, right: 70, bottom: 60, left: 80}
 const height = 180
 const agencies = ['FDNY', 'EMS']
@@ -27,8 +35,26 @@ const revLLCats = Object.keys(LLCategories).reduce((acc, propName) =>
     return a;
   }, acc), {})
 
+// The width of the bins in seconds.
+const binsizes = new Object({FDNY: 15, EMS: 30})
+
+// Initial settings
+// The number of bins to retrieve (covering a total period of \`binsize * numbins\`)`
+const numbins = 60
+// Variable ("mutable" in the Observable notebook) containing the selected Community District number
+let cd = ""
+// The selected category of response times
 let fireCat = LLCategories["FDNY"][0]
+// The agency associated with the selected category
+let agency = revLLCats[fireCat]
+// The binsize associated with the agency of the selected category
+let binsize = binsizes[agency]
+// Whether to show the FDNY locations on the map
 let showLocations = false;
+
+/*
+ *  Interface controls and triggers
+ */
 
 //Populate the select box
 let catSelector = document.getElementById('CategoryBox')
@@ -54,6 +80,7 @@ catSelector.onchange = function () {
     updateTrends()
 }
 
+// FDNY Location checkbox
 let locCheck = document.getElementById('FDNYLocations')
 locCheck.onchange = function() {
     const fdnyLocs = d3.select("#map-container").selectAll("circle")
@@ -61,6 +88,11 @@ locCheck.onchange = function() {
 }
 
 function catGraphUpdates () {
+    /*
+     * The updates to be done when the category changes
+     */
+    
+    // New scales for the histogram plot and the color scheme
     color = d3.scaleQuantize()
         .domain(domains[agency])
         .range(colorSchemes[agency])
@@ -73,14 +105,17 @@ function catGraphUpdates () {
         .domain([0, d3.max(dataCat, d => +d.count)]).nice()
         .range([height - margin.bottom, margin.top])
 
+    // Use old legend for scaling new items before transition 
     const oldLegendX = legendX
 
     legendX = d3.scaleLinear()
         .domain(domains[agency])
         .range([0, 360])
 
+    // Recolor the map
     d3.select("#map-container").selectAll("path").transition().duration(1000).call(reColor)
 
+    // Rerender the legend
     const indicators = d3.select("#legendIndicators").selectAll("rect")
       .data(color.range().map(function(dd) {
       d = color.invertExtent(dd);
@@ -115,31 +150,23 @@ function catGraphUpdates () {
 
 }
 
-let agency = revLLCats[fireCat]
-//const these until I get the layout right
 
-// The width of the bins in seconds.
-const binsizes = new Object({FDNY: 15, EMS: 30})
-let binsize = binsizes[agency]
-// The number of bins to retrieve (covering a total period of \`binsize * numbins\`)`
-const numbins = 60
-// This is a \`mutable\` cell containing the selected Community District number`
-let cd = ""
-// Collect some statistics on each community district`
-
-// This cell adds LatLng point objects from the individual Lat and Lng fields`
-// Make a LatLng Object for each entry's Lat and Lng strings
+// Add LatLng point objects from the individual Lat and Lng fields
 async function addLatLng(){
   await fdnyLocations.forEach(function(d) {
     d.LatLng = new L.LatLng(d.Latitude, d.Longitude)})
 }
 
+/*
+ * Custom filters and aggregation functions
+ */
 
 function filterByCat(d){
-  /*if (this == "All")
-    return LLCategories[agency].includes(d.icg);
-  else*/
+  // to be passed in the callback with a parameter, which becomes 'this', e.g., 
+  // when calling .filter(filterByCat, fireCat), fireCat becomes 'this'.
+
   theCat = this.valueOf()   // unsure why this became a string object instead of literal
+
   if (LLCategories['FDNY'].includes(theCat)){ //agency == "FDNY")
     return d.icg == theCat;}
   else { 
@@ -151,18 +178,22 @@ function filterByCat(d){
 function filterByCD2(d){
   // to be passed in the callback with a parameter, which becomes 'this', e.g., 
   // when calling .filter(filterByCD, cd), cd becomes 'this'.
-  //console.log(d, this)
+
   if (this=="") {return true} //this line wasn't necessary in notebook?
-  return (this) ?
-    (this % 100) ?
-      (+d.CD == +this)
-    :
-      ((d.CD > +this) && (d.CD < (+this +100)))
-    :
-      true;
+
+  return (this) ?               // if cd is not blank,
+    (this % 100) ?              // if it's not divisible by 100, i.e., a borough code
+      (+d.CD == +this)          // match items matching cd
+    :                           // otherwise
+      ((d.CD > +this) && (d.CD < (+this +100))) // match items with same borough code 
+    :                           // otherwise
+      true;                     // (cd is blank) match all
 }
 
 function reduceByTimebin(data){
+  // sum data counts on matching timebins
+  // return as list of objects
+
   let reducer = data.reduce(function(pv, cv) {
     if ( pv[cv.timebin] ) {
         pv[cv.timebin] += +cv.count;
@@ -181,12 +212,22 @@ function reduceByTimebin(data){
 }
 
 async function quantileFromHistogram(q, data, thisCD, thisCat, thisMonth="") {
-  //console.log('why am i running')
+    /* Estimate quantile values from histogram data.
+     *
+     * q:         fractional part of cdf. For median, q = 0.5.
+     * data:      histogram data, as a list of objects with timebin and count properties.
+     * thisCD:    the CD of the data associated with the histogram
+     * thisCat:   the category of data associated with the histogram
+     * thisMonth: the month of the data to filter in the histogram; default is no month filtering.
+     *
+     */
+
   let sum = 0;
   let numberInCD = (await recordNumbers)
                         .filter(filterByCD2, thisCD)
                         .filter(filterByCat, thisCat)
   if (thisMonth) { numberInCD = numberInCD.filter(d => d.month==thisMonth)} //(d=>fireCat==d.icg) 
+
   numberInCD = numberInCD.reduce((sum, d) => sum += +d.count, 0)
   let quantilePosition = numberInCD * q  //don't care if it's an integer
   
@@ -210,7 +251,6 @@ async function quantileFromHistogram(q, data, thisCD, thisCat, thisMonth="") {
   
   try{
   
-  //console.log(i, quantilePosition, delta, sum)
   //Assume items in bin are distributed along the slope of the line connecting the adjacent bins
   //use y= m(x-x1)+y1, m=(bin[i]-bin[i-2])/2*binwidth
   const m = (+data[i].count-data[i-2].count)/2/bsize
@@ -260,7 +300,7 @@ async function fd(d){
     return reduceByTimebin(thedata.filter(filterByCD2,cd)) //.filter(filterByCat,fireCat))
 }
     
-let filterData = fd(dataCat) //reduceByTimebin(dataSets.filter(filterByCD2, cd).filter(filterByCat, fireCat))
+let filterData = fd(dataCat) 
 
 const colorSchemes = new Object({EMS: d3.schemeBlues[6], FDNY: d3.schemeReds[5]})
 const domains = new Object({EMS: [250,550], FDNY: [150,400]})
@@ -365,7 +405,11 @@ d3.selection.prototype.moveToFront = function() {
   }
 
 class mytooltip {
-  
+/* 
+ *
+ *
+ */
+
   constructor(opts) {
     this.ttWidth = opts.ttWidth || 200
     this.ttHeight = opts.ttHeight || 20
@@ -432,7 +476,7 @@ percentSetter.oninput = async function () {
 const svgTrends = d3.select("#trends").append("svg").style("width", "100%");
 const gTrends = svgTrends.append("g")
 const monthTip = new mytooltip({context: svgTrends})
-monthTip.tip.append("circle").attr('r',5)
+//monthTip.tip.append("circle").attr('r',5)
 
 async function updateTrends() {
 
@@ -466,16 +510,6 @@ async function updateTrends() {
 
     serie.filter(d=>d.CD==cd).moveToFront()
   
-//  const meddata = (await trends).filter(d => +d.CD == +cd).filter(d => d.icg == fireCat)
-//  let medcurve = svgTrends.append("g").append("path")
-//      .style("fill", "none")
-//      .style("stroke-width", 5) // d => (+d.cd==+cd) ? 5 : 0.5)
-//      .attr("stroke-linejoin", "round")
-//      .attr("stroke-linecap", "round")
-//      .style("stroke", "#000") //d => (+d.cd==+cd) ? "#fcf" : "#ddd")
-//      .attr("d", lineaDate(meddata)) //d => {console.log(d, lineaDate(d)); return lineaDate(d) })
-//      .style("display", null)
-
 }
 
 async function makeTrends() {
@@ -534,13 +568,17 @@ async function makeTrends() {
     for (let e of indicators) {e.style("display", null)}
   })
   
-  svgTrends.on("mousemove", () => {
+  svgTrends.on("mousemove", async () => {
     const [xCoord, yCoord] = d3.mouse(svgTrends.node());
     const top = yCoord > height - margin.bottom;
     const hoverMonth = dateScale.invert(xCoord);
-    console.log(d3.isoFormat(d3.timeMonth.round(hoverMonth)))
-    let xPosition = x2(hoverMonth + binsize) //d3.mouse(this)[0] - ttWidth/2;
-    let yPosition = height-40 //d3.mouse(this)[1] - (ttHeight + 5);
+    const theMonth = d3.timeFormat("%Y-%m")(d3.timeMonth.round(hoverMonth))
+    const theTrend = (await trends).filter(d=>d.CD==cd).filter(d=>d.icg==fireCat)[0].trend
+    const theValue = theTrend.filter(d=>d.month.slice(0,7)==theMonth)[0].median
+    let xPosition = dateScale(d3.isoParse(theMonth)) //d3.mouse(this)[0] - ttWidth/2;
+    let yPosition = medianScale(theValue) //d3.mouse(this)[1] - (ttHeight + 5);
+    monthTip.setPosition(xPosition, yPosition)
+    monthTip.setText(theValue)
   })
 
   svgTrends.append("g")
@@ -1327,475 +1365,6 @@ async function makeMap(theData){
   }
 }
   
-
-// Here be cells from Observable from when this was a live download
-/*
- * name: "setCode",
-      value: (function(){return(
-new Object({FDNY: 'mhu7-c3xb', EMS: '66ae-7zpy'})
-)})
-    },
-    {
-      name: "queries",
-      inputs: ["binsizes","numbins"],
-      value: (function(binsizes,numbins){return(
-new Object(
-        {FDNY: 
-          `SELECT 
-             (incident_response_seconds_qy - incident_response_seconds_qy % ${binsizes.FDNY}) AS timebin,
-             date_trunc_ym(incident_datetime) as month,
-             communitydistrict AS CD,
-             incident_classification_group AS icg,
-             COUNT(*) AS count
-           WHERE ((timebin < ${(binsizes.FDNY * numbins) + 1}) AND (valid_incident_rspns_time_indc = 'Y') AND icg in("Structural Fires", "NonStructural Fires", "Medical Emergencies", "NonMedical Emergencies"))
-           GROUP BY timebin, icg, communitydistrict, month
-           ORDER BY communitydistrict, icg, timebin
-           LIMIT 500000`,
-         EMS:
-           `SELECT 
-             (incident_response_seconds_qy - incident_response_seconds_qy % ${binsizes.EMS}) AS timebin, 
-             date_trunc_ym(incident_datetime) as month,
-             communitydistrict AS CD,
-             CASE (initial_severity_level_code='1', 'Segment 1',
-                   initial_severity_level_code between '1' and '3', 'Life-threatening',
-                   1=1, 'Non-life-threatening') as icg,
-             COUNT(*) AS count
-           WHERE ((timebin < ${(binsizes.EMS * numbins) + 1}) AND (valid_incident_rspns_time_indc = 'Y'))
-           GROUP BY timebin, icg, communitydistrict, month
-           ORDER BY communitydistrict, icg, timebin
-           LIMIT 500000`
-        })
-)})
-    },
-    {
-      name: "getData",
-      inputs: ["consumer","setCode","queries"],
-      value: (function(consumer,setCode,queries){return(
-function(theAgency) {
-  return new Promise((resolve, reject) => { 
-  consumer.query()
-    .withDataset(setCode[theAgency])
-    .soql(queries[theAgency])
-    .getRows()
-      .on('success', function(rows){ resolve(rows); })
-      .on('error', function(error) { reject(error); })
-})}
-)})
-    },
-    {
-      name: "dataSets",
-      inputs: ["agencies","getData"],
-      value: (function(agencies,getData){return(
-Promise.all(agencies.map(agcy=>getData(agcy))).then(
-  function(results){
-    return results.reduce(function(a,b){return a.concat(b);})
-    /*console.log("i'm running too!")
-    let r = {}
-    for (let i = 0; i < agencies.length; i++) {
-      r[agencies[i]] = results[i];
-    }
-    return r*/
-/*
-})
-)})
-    },
-    {
-      name: "dataSets2",
-      inputs: ["d3","dataSets"],
-      value: (function(d3,dataSets){return(
-d3.nest().key(d=>d.CD)
-                     .key(d=>d.icg)
-                     .entries(dataSets)
-                     .map(function(cdgroup){
-                       return {CD:cdgroup.key, 
-                               values:cdgroup.values.map(function(icggroup){
-                                 return {icg: icggroup.key, 
-                                         values:icggroup.values}})}})
-)})
-    },
-    {
-      name: "getNumQueries",
-      value: (function(){return(
-new Object(
-        {FDNY: 
-          `SELECT 
-             communitydistrict AS CD,
-             incident_classification_group AS icg,
-             date_trunc_ym(incident_datetime) as month,
-             COUNT(*) AS count,
-             avg(incident_response_seconds_qy) as avg
-           WHERE valid_incident_rspns_time_indc = 'Y' AND icg in("Structural Fires", "NonStructural Fires", "Medical Emergencies", "NonMedical Emergencies")
-           GROUP BY icg, communitydistrict, month
-           LIMIT 50000`,
-         EMS:
-           `SELECT 
-             communitydistrict AS CD,
-             date_trunc_ym(incident_datetime) as month,
-             CASE (initial_severity_level_code='1', 'Segment 1',
-                   initial_severity_level_code between '1' and '3', 'Life-threatening',
-                   1=1, 'Non-life-threatening') as icg,
-             COUNT(*) AS count,
-             avg(incident_response_seconds_qy) as avg
-           WHERE valid_incident_rspns_time_indc = 'Y'
-           GROUP BY icg, communitydistrict, month
-           LIMIT 80000`
-        })
-)})
-    },
-    {
-      name: "getNumRecords",
-      inputs: ["consumer","setCode","getNumQueries"],
-      value: (function(consumer,setCode,getNumQueries){return(
-function(theAgency) {
-  return new Promise((resolve, reject) => { 
-  consumer.query()
-    .withDataset(setCode[theAgency]) //'66ae-7zpy')
-    .soql(getNumQueries[theAgency])
-    .getRows()
-      .on('success', function(rows){ resolve(rows); })
-      .on('error', function(error) { reject(error); })
-})}
-)})
-    },
-    {
-      name: "recordNumbers",
-      inputs: ["agencies","getNumRecords"],
-      value: (function(agencies,getNumRecords){return(
-Promise.all(agencies.map(theagency=>getNumRecords(theagency))).then(
-  function(results){
-    return [].concat(...results)
-/*    console.log("i'm running three!")
-    let r = {}
-    for (let i = 0; i < agencies.length; i++) {
-      r[agencies[i]] = results[i];
-    }
-    return r*/
-/*  })
-)})
-    },
-    {
-      name: "trends",
-      value: (function(){return(
-[]
-)})
-    },
-    {
-      name: "cdfs",
-      value: (function(){return(
-[]
-)})
-    },
-    {
-      value: throw new SyntaxError("Unexpected token (1:3)")
-    },
-    {
-      name: "nycCD",
-      inputs: ["d3","dataSets2","agencies","recordNumbers","LLCategories","filterByCat","reduceByTimebin","quantileFromHistogram","cdfs","trends","dataSets","filterByCD2"],
-      value: (function(d3,dataSets2,agencies,recordNumbers,LLCategories,filterByCat,reduceByTimebin,quantileFromHistogram,cdfs,trends,dataSets,filterByCD2){return(
-d3.json('https://data.cityofnewyork.us/api/geospatial/yfnk-k7r4?method=export&format=GeoJSON')
-  .then(async function (result) { 
-  //  return await Promise.all(result.features.map(async (obj) => {
-  //    await processCD(obj)
-
-//    result.features.forEach(function(obj){
-    for await(const obj of result.features){
-      // for each agency...
-//      let Recs = dataSets.filter(d => d.CD == obj.properties.boro_cd)
-      let Recs = dataSets2.filter(d=>d.CD==obj.properties.boro_cd)[0].values
-      //console.log(Recs)
-      obj.properties.median = {}
-      //obj.properties.histogram = {}
-      for (let a of agencies) {
-        obj.properties.median[a] = {} 
-        //obj.properties.histogram[a] = {}
-        let nn1 = recordNumbers.filter(d=>+d.CD==obj.properties.boro_cd)
-        for (let fc of LLCategories[a]) {
-          // for each feature, filter call data by feature CD
-
-          let fRecs = Recs.filter(filterByCat, fc) // (d=>fc==d.icg)
-
-          
-          let nn2 = nn1.filter(filterByCat, fc)
-          
-          //obj.properties.histogram[a][fc] = {}
-          obj.properties.median[a][fc] = []
-          
-          // get median and cdf for all months
-          if (fRecs.length){
-            fRecs = fRecs[0].values
-            let fd = reduceByTimebin(fRecs)
-            //console.log(fd)
-            let nn = nn2.reduce((sum,d)=>sum + +d.count, 0) //.count
-            
-            let sum = 0;
-            let theCDF = [];
-            theCDF.push({timebin: 0, cdf: 0})
-            //fRecs[0]['cdf'] = 0
-            //console.log(fd)
-            for(let i=0; i < fd.length-1; i++){
-              sum += +(fd[i].count)
-              theCDF.push({timebin: fd[i].timebin, cdf: sum/nn});
-            }
-            
-            obj.properties.median[a][fc].push({month: "", 
-                                               median: quantileFromHistogram(0.5, 
-                                                                             fd, 
-                                                                             obj.properties.boro_cd, 
-                                                                             fc)})
-            cdfs.push({agency: a, icg: fc, CD: obj.properties.boro_cd, month: "", cdf: theCDF});
-          }
-          
-          const theMonths = [...new Set(fRecs.map(item => item.month))].sort()
-          let theTrend = [];
-          for (let theMonth of theMonths){
-            // further filter by month
-            let fmRecs = fRecs.filter(d => d.month == theMonth)
-            //console.log(fmRecs)
-            let fd = reduceByTimebin(fmRecs) /*dataSets.filter(d => d.CD == obj.properties.boro_cd)
-                                             .filter(filterByCat, fc)
-                                             .filter(d => d.month == theMonth))*/
-            //console.log(fd)
-/*            if (fmRecs.length){
-              //console.log(fmRecs)
-              // then compute median from the resulting histogram
-              const med = quantileFromHistogram(0.5, fd, obj.properties.boro_cd, fc, theMonth);
-              theTrend.push({month: theMonth, median:med})
-              //trends.push({agency: a, icg: fc, CD: obj.properties.boro_cd, month: theMonth, median: med});
-              //console.log(nn2.filter(d=>d.month == theMonth))
-/*              let nn = nn2.filter(d => d.month == theMonth)
-                                       .reduce((sum,d)=>sum + +d.count, 0) //.count
-              //if(obj.properties.boro_cd=="101" && fc=="Medical Emergencies" && theMonth==theMonths[0]) { console.log(fd, fmRecs, nn, theMonth) }
-              let sum = 0;
-              fmRecs[0]['cdf'] = 0
-              let theCDF = [];
-              theCDF.push({timebin: 0, cdf: 0})
-              //console.log(fmRecs.length-1)
-              for(let i=0; i < fd.length-1; i++){
-                sum += +(fd[i].count)                
-                fmRecs[i+1]['cdf'] = sum/nn;
-                theCDF.push({timebin: fd[i].timebin, cdf: sum/nn});
-              //obj.properties.histogram[a][fc] = fRecs 
-              } // for each record
-              obj.properties.median[a][fc].push({month: theMonth, 
-                                                 median: med});
-              cdfs.push({agency: a, icg: fc, CD: obj.properties.boro_cd, month: theMonth, cdf: theCDF});
-  */            
-  /*            
-            } // if records not empty 
-          } // for each month 
-          trends.push({agency: a, icg: fc, CD: obj.properties.boro_cd, trend: theTrend});
-        } // for each firecat
-      } // for each agency
-    } // for each CD
-    
-    return result
-    
-    
-  })
-  .then(function(result) {
-    //console.log(result)
-    for(let iterCD = 0; iterCD <= 500; iterCD+=100){
-      // for each agency...
-      let idx = result.features.push({properties: {boro_cd: iterCD, 
-                                                   median: {}, 
-                                                   histogram: {} }})
-      let obj = result.features[idx-1]
-      for (let a of agencies) {
-        obj.properties.median[a] = {}
-        //result.features[obj-1].properties.histogram[a] = {}
-        for (let fc of LLCategories[a]) {
-          
-          let fdata = dataSets.filter(filterByCD2, iterCD)
-                              .filter(filterByCat, fc)
-          let nn2 = recordNumbers.filter(filterByCD2, iterCD)
-                                .filter(filterByCat, fc)
-
-          //(d=>fc==d.icg)
-          const theMonths = [...new Set(fdata.map(item => item.month))].sort()
-          //obj.properties.histogram[a][fc] = {}
-          //FIX THIS LINE
-          //let fd = reduceByTimebin(fdata)
-
-          if (fdata.length){
-            let fd = reduceByTimebin(fdata)
-            //console.log(fd)
-            let nn = nn2.reduce((sum,d)=>sum + +d.count, 0) //.count
-            
-            let sum = 0;
-            let theCDF = [];
-            theCDF.push({timebin: 0, cdf: 0})
-            //fRecs[0]['cdf'] = 0
-            //console.log(fd)
-            for(let i=0; i < fd.length-1; i++){
-              sum += +(fd[i].count)
-              theCDF.push({timebin: fd[i].timebin, cdf: sum/nn});
-            }
-
-          
-          obj.properties.median[a][fc] = []
-          obj.properties.median[a][fc].push({month: "", 
-                                             median: quantileFromHistogram(0.5, 
-                                                                           fd, 
-                                                                           obj.properties.boro_cd, fc)});
-
-          cdfs.push({agency: a, icg: fc, CD: iterCD, month: "", cdf: theCDF});
-          }
-          
-          let theTrend = [];
-
-          for (let theMonth of theMonths){
-            // further filter by month
-            let fmRecs = fdata.filter(d => d.month == theMonth)
-            let fd = reduceByTimebin(fmRecs) /*dataSets.filter(d => d.CD == obj.properties.boro_cd)
-                                             .filter(filterByCat, fc)
-                                             .filter(d => d.month == theMonth))*/
-/*            //console.log(fd)
-            if (fmRecs.length){
-              //console.log(fmRecs)
-              // then compute median from the resulting histogram
-              const med = quantileFromHistogram(0.5, fd, obj.properties.boro_cd, fc, theMonth);
-
-              obj.properties.median[a][fc].push({month: theMonth, median: med});
-              theTrend.push({month: theMonth, median:med})
-              //let median = quantileFromHistogram(0.5, fdata, iterCD)
-              //obj.properties.median[a][fc] = median
-/*
-              let nn = nn2.filter(d => d.month == theMonth)
-                                       .reduce((sum,d)=>sum + +d.count, 0)
-              //console.log(iterCD, fc, nn, median, fdata)
-              let sum = 0;
-              let theCDF = [];
-              theCDF.push({timebin: 0, cdf: 0})
-              fdata[0]['cdf'] = 0
-              for(let i=0; i < fd.length-1; i++){
-                sum += +fd[i].count
-                //console.log(iterCD, fc, fdata.length, sum, nn, sum/nn)
-                fdata[i+1]['cdf'] = sum/nn;
-                theCDF.push({timebin: fd[i].timebin, cdf: sum/nn});}
-              cdfs.push({agency: a, icg: fc, CD: iterCD, month: theMonth, cdf: theCDF});
-*/
-/*              //result.features[obj-1].properties.histogram[a][fc] = fdata
-            } // if records not empty
-          } // for each month */
-/*          trends.push({agency: a, icg: fc, CD: iterCD, trend: theTrend});
-        } // for each firecat
-      } // for each agency
-    } // for each boro/citywide
-    return result
-    })
-)})
-    },
-    {
-      name: "processCD",
-      inputs: ["dataSets","agencies","recordNumbers","LLCategories","filterByCat","reduceByTimebin","quantileFromHistogram","cdfs","trends"],
-      value: (function(dataSets,agencies,recordNumbers,LLCategories,filterByCat,reduceByTimebin,quantileFromHistogram,cdfs,trends){return(
-async (obj) => {
-//    result.features.forEach(function(obj){
-      // for each agency...
-      let Recs = dataSets.filter(d => d.CD == obj.properties.boro_cd)
-      
-      obj.properties.median = {}
-      //obj.properties.histogram = {}
-      for (let a of agencies) {
-        obj.properties.median[a] = {} 
-        //obj.properties.histogram[a] = {}
-        let nn1 = recordNumbers.filter(d=>+d.CD==obj.properties.boro_cd)
-        for (let fc of LLCategories[a]) {
-          // for each feature, filter call data by feature CD
-          let fRecs = Recs.filter(filterByCat, fc) // (d=>fc==d.icg)
-
-          let nn2 = nn1.filter(filterByCat, fc)
-          const theMonths = [...new Set(fRecs.map(item => item.month))].sort()
-          //obj.properties.histogram[a][fc] = {}
-          obj.properties.median[a][fc] = []
-          
-          // get median and cdf for all months
-          if (fRecs.length){
-            let fd = reduceByTimebin(fRecs)
-            //console.log(fd)
-            let nn = nn2.reduce((sum,d)=>sum + +d.count, 0) //.count
-            
-            let sum = 0;
-            let theCDF = [];
-            theCDF.push({timebin: 0, cdf: 0})
-            //fRecs[0]['cdf'] = 0
-            //console.log(fd)
-            for(let i=0; i < fd.length-1; i++){
-              sum += +(fd[i].count)
-              theCDF.push({timebin: fd[i].timebin, cdf: sum/nn});
-            }
-            
-            obj.properties.median[a][fc].push({month: "", 
-                                               median: quantileFromHistogram(0.5, 
-                                                                             fd, 
-                                                                             obj.properties.boro_cd, 
-                                                                             fc)})
-            cdfs.push({agency: a, icg: fc, CD: obj.properties.boro_cd, month: "", cdf: theCDF});
-          }
-          
-          let theTrend = [];
-          for (let theMonth of theMonths){
-            // further filter by month
-            let fmRecs = fRecs.filter(d => d.month == theMonth)
-            //console.log(fmRecs)
-            let fd = reduceByTimebin(fmRecs) /*dataSets.filter(d => d.CD == obj.properties.boro_cd)
-                                             .filter(filterByCat, fc)
-                                             .filter(d => d.month == theMonth))*/
-            //console.log(fd)
-/*            if (fmRecs.length){
-              //console.log(fmRecs)
-              // then compute median from the resulting histogram
-              const med = quantileFromHistogram(0.5, fd, obj.properties.boro_cd, fc, theMonth);
-              theTrend.push({month: theMonth, median:med})
-              //trends.push({agency: a, icg: fc, CD: obj.properties.boro_cd, month: theMonth, median: med});
-              //console.log(nn2.filter(d=>d.month == theMonth))
-/*              let nn = nn2.filter(d => d.month == theMonth)
-                                       .reduce((sum,d)=>sum + +d.count, 0) //.count
-              //if(obj.properties.boro_cd=="101" && fc=="Medical Emergencies" && theMonth==theMonths[0]) { console.log(fd, fmRecs, nn, theMonth) }
-              let sum = 0;
-              fmRecs[0]['cdf'] = 0
-              let theCDF = [];
-              theCDF.push({timebin: 0, cdf: 0})
-              //console.log(fmRecs.length-1)
-              for(let i=0; i < fd.length-1; i++){
-                sum += +(fd[i].count)                
-                fmRecs[i+1]['cdf'] = sum/nn;
-                theCDF.push({timebin: fd[i].timebin, cdf: sum/nn});
-              //obj.properties.histogram[a][fc] = fRecs 
-              } // for each record
-              obj.properties.median[a][fc].push({month: theMonth, 
-                                                 median: med});
-              cdfs.push({agency: a, icg: fc, CD: obj.properties.boro_cd, month: theMonth, cdf: theCDF});
-  */            
-  /*            
-            } // if records not empty 
-          } // for each month 
-          trends.push({agency: a, icg: fc, CD: obj.properties.boro_cd, trend: theTrend});
-        } // for each firecat
-      } // for each agency
-  return obj;
-}
-)})
-    },
-    */
-
-/*
- * name: "download",
-      value: (function(){return(
-function download(content, fileName, contentType) {
-    var a = document.createElement("a");
-    var file = new Blob([JSON.stringify(content)], {type: contentType});
-    a.href = URL.createObjectURL(file);
-    a.download = fileName;
-    a.click();
-}
-)})
-    },
-    {
-      inputs: ["download","dataSets"],
-      value: (function(download,dataSets){return(
-download(dataSets, 'dataSets.json', 'text/plain')
-)})*/
 
 makeMap(nycCD);
 makeHist();
