@@ -194,12 +194,11 @@ function filterByCD2(d){
 
 function filterByMonth(d){
   // here, 'this' shall be a list containing the first month and last month.
-
   if (this.length == 0) {return true}
 
   else if (this.length == 1) {return d.month == this[0]}
 
-  else if (this.lenth == 2) {
+  else if (this.length == 2) {
     const firstMonth = this[0],
           lastMonth = this[1];
     return (d.month >= firstMonth && d.month < lastMonth)
@@ -670,7 +669,7 @@ const moreThanTip = new mytooltip({context: svgHist, align: "start", xoffset: 10
 
 async function updateHist() {
 
-  const filterdata = await fd(dataCat) //was dataSets 
+  const filterdata = (startMonth) ? await fd((await dataCat).filter(filterByMonth, [startMonth, endMonth])) : await fd(dataCat) //was dataSets 
   const recordnumbers = await recordNumbers
   const ninetyPct = await quantileFromHistogram(pct, filterdata, cd, fireCat);
   const totalcalls = recordnumbers.filter(filterByCD2, cd).filter(filterByCat, fireCat) //(d=>fireCat==d.icg)
