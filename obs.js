@@ -16,8 +16,10 @@ const fdnyLocations = d3.csv("fdnyLocations.csv")
 const nycCD = d3.json("./nycCD.json")
 const trends = d3.json("./trends.json")
 const cdfs = d3.json("./cdfs.json")
-const dataSets = d3.json("./dataSets.json")
-const recordNumbers = d3.json("./recordNumbers.json")
+const dataSets = d3.csv("./dataSets.csv")
+const recordNumbers = d3.csv("./recordNumbers.csv")
+//const dataSets = d3.json("./dataSets.json")
+//const recordNumbers = d3.json("./recordNumbers.json")
 
 /*
  *  Constants for UI and categorization
@@ -188,6 +190,25 @@ function filterByCD2(d){
       ((d.CD > +this) && (d.CD < (+this +100))) // match items with same borough code 
     :                           // otherwise
       true;                     // (cd is blank) match all
+}
+
+function filterByMonth(d){
+  // here, 'this' shall be a list containing the first month and last month.
+
+  if (this.length == 0) {return true}
+
+  else if (this.length == 1) {return d.month == this[0]}
+
+  else if (this.lenth == 2) {
+    const firstMonth = this[0],
+          lastMonth = this[1];
+    return (d.month >= firstMonth && d.month < lastMonth)
+  }
+
+  else {
+    console.log("filterByMonth was called with an unknown 'this' value");
+    return false
+  }
 }
 
 function reduceByTimebin(data){
@@ -483,6 +504,7 @@ svgTrends.append("rect")
     .attr('fill', '#111')
     .style('width', '100%')
     .style('fill-opacity', 0.08)
+let startMonth, endMonth
 
 async function updateTrends() {
 
@@ -598,7 +620,12 @@ async function makeTrends() {
 
 function brushended() {
   if (!d3.event.sourceEvent) return; // Only transition after input.
-  if (!d3.event.selection) return; // Ignore empty selections.
+  if (!d3.event.selection) {
+      startMonth = null
+      endMonth = null
+      updateHist()
+      return
+  }
   var d0 = d3.event.selection.map(dateScale.invert),
       d1 = d0.map(d3.timeMonth.round);
 
@@ -607,6 +634,9 @@ function brushended() {
     d1[0] = d3.timeMonth.floor(d0[0]);
     d1[1] = d3.timeMonth.offset(d1[0]);
   }
+  startMonth = d3.timeFormat("%Y-%m")(d1[0])
+  endMonth = d3.timeFormat("%Y-%m")(d1[1])
+  updateHist()
 
   d3.select(this).transition().call(d3.event.target.move, d1.map(dateScale));
 }
