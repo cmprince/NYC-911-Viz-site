@@ -201,7 +201,8 @@ function filterByMonth(d){
   else if (this.length == 2) {
     const firstMonth = this[0],
           lastMonth = this[1];
-    return (d.month >= firstMonth && d.month < lastMonth)
+
+    return (firstMonth) ? (d.month >= firstMonth && d.month < lastMonth) : true
   }
 
   else {
@@ -231,7 +232,7 @@ function reduceByTimebin(data){
   return returnObjList
 }
 
-async function quantileFromHistogram(q, data, thisCD, thisCat, thisMonth="") {
+async function quantileFromHistogram(q, data, thisCD, thisCat, theseMonths="") {
     /* Estimate quantile values from histogram data.
      *
      * q:         fractional part of cdf. For median, q = 0.5.
@@ -246,7 +247,7 @@ async function quantileFromHistogram(q, data, thisCD, thisCat, thisMonth="") {
   let numberInCD = (await recordNumbers)
                         .filter(filterByCD2, thisCD)
                         .filter(filterByCat, thisCat)
-  if (thisMonth) { numberInCD = numberInCD.filter(d => d.month==thisMonth)} //(d=>fireCat==d.icg) 
+  if (theseMonths) { numberInCD = numberInCD.filter(filterByMonth, theseMonths)} //(d=>fireCat==d.icg) 
 
   numberInCD = numberInCD.reduce((sum, d) => sum += +d.count, 0)
   let quantilePosition = numberInCD * q  //don't care if it's an integer
@@ -617,28 +618,28 @@ async function makeTrends() {
         .extent([[0, 0], [window.innerWidth, height]])
         .on("end", brushended));
 
-function brushended() {
-  if (!d3.event.sourceEvent) return; // Only transition after input.
-  if (!d3.event.selection) {
-      startMonth = null
-      endMonth = null
-      updateHist()
-      return
-  }
-  var d0 = d3.event.selection.map(dateScale.invert),
-      d1 = d0.map(d3.timeMonth.round);
+  function brushended() {
+    if (!d3.event.sourceEvent) return; // Only transition after input.
+    if (!d3.event.selection) {
+        startMonth = null
+        endMonth = null
+        updateHist()
+        return
+    }
+    var d0 = d3.event.selection.map(dateScale.invert),
+        d1 = d0.map(d3.timeMonth.round);
 
-  // If empty when rounded, use floor & ceil instead.
-  if (d1[0] >= d1[1]) {
-    d1[0] = d3.timeMonth.floor(d0[0]);
-    d1[1] = d3.timeMonth.offset(d1[0]);
-  }
-  startMonth = d3.timeFormat("%Y-%m")(d1[0])
-  endMonth = d3.timeFormat("%Y-%m")(d1[1])
-  updateHist()
+    // If empty when rounded, use floor & ceil instead.
+    if (d1[0] >= d1[1]) {
+      d1[0] = d3.timeMonth.floor(d0[0]);
+      d1[1] = d3.timeMonth.offset(d1[0]);
+    }
+    startMonth = d3.timeFormat("%Y-%m")(d1[0])
+    endMonth = d3.timeFormat("%Y-%m")(d1[1])
+    updateHist()
 
-  d3.select(this).transition().call(d3.event.target.move, d1.map(dateScale));
-}
+    d3.select(this).transition().call(d3.event.target.move, d1.map(dateScale));
+  }
   
   //svg.on("click", () => { histMode = !histMode; console.log(histMode) })
   updateTrends() 
@@ -648,8 +649,6 @@ function brushended() {
       this.parentNode.appendChild(this);
     });
   };
-  
-  
 }
 
 const svgHist = d3.select("#histogram").append("svg").style("width", "100%"); //DOM.svg(width, height));
@@ -670,15 +669,17 @@ const moreThanTip = new mytooltip({context: svgHist, align: "start", xoffset: 10
 async function updateHist() {
 
   const filterdata = (startMonth) ? await fd((await dataCat).filter(filterByMonth, [startMonth, endMonth])) : await fd(dataCat) //was dataSets 
-  const recordnumbers = await recordNumbers
-  const ninetyPct = await quantileFromHistogram(pct, filterdata, cd, fireCat);
+  const recordnumbers = (startMonth) ? (await recordNumbers).filter(filterByMonth, [startMonth, endMonth]) : await recordNumbers
+  const ninetyPct = await quantileFromHistogram(pct, filterdata, cd, fireCat, [startMonth, endMonth]);
   const totalcalls = recordnumbers.filter(filterByCD2, cd).filter(filterByCat, fireCat) //(d=>fireCat==d.icg)
                       .reduce((sum, d) => sum += +d.count, 0);
   const average = recordnumbers.filter(filterByCD2, cd).filter(filterByCat, fireCat) //(d=>fireCat==d.icg)
                     .reduce((sum, d) => sum += +d.count * +d.avg, 0)/totalcalls
   const medobj = (await nycCD).features.filter(d=>+d.properties.boro_cd==+cd)[0]
                     .properties.median[agency][fireCat]
-  const median = medobj.length ? medobj[0].median : NaN
+  const median = (startMonth) ? 
+                    await quantileFromHistogram(0.5, filterdata, cd, fireCat, [startMonth, endMonth])
+                    : medobj.length ? medobj[0].median : NaN
   const ttWidth = 200
   const ttHeight = 20
 
@@ -927,15 +928,15 @@ async function makeHist() {
        .text(dataSets.count))
 
   const countLine = svgHist.append("line")
-    .attr('x1', x2(-10))
-    .attr('y1', y2(0))
-    .attr('x2', x2(100))
-    .attr('y2', y2(0)) //margin.top)
-    .style("stroke-width", 2)
-    .style("stroke", "green")
-    .style("fill", "none")
-    .style("display", "none")
-    .attr("id", "countLine");
+      .attr('x1', x2(-10))
+      .attr('y1', y2(0))
+      .attr('x2', x2(100))
+      .attr('y2', y2(0)) //margin.top)
+      .style("stroke-width", 2)
+      .style("stroke", "green")
+      .style("fill", "none")
+      .style("display", "none")
+      .attr("id", "countLine");
  
   const average = 20
   const ninetyPct = 0
@@ -990,7 +991,7 @@ async function makeHist() {
       .attr('font-size', '14px')
       .attr('x', x2(average))
       .attr('transform', `translate(0,${y3(1)})`)
-        .attr("fill","black")
+      .attr("fill","black")
       .attr("dy", "1.2em")
       .attr("dx", "0.2em")
       .text(`Average = ${Math.round(average)} seconds`)
@@ -1297,12 +1298,12 @@ async function makeMap(theData){
     d.LatLng = new L.LatLng(d.Latitude, d.Longitude)})
   
   const fdnyLocs = g.selectAll('circle')
-		.data((await fdnyLocations)).enter()
-		.append("circle")
-		.attr("r", "2px")
-        .attr("stroke-width", "2.5px")
-        .attr("stroke", "green")
-		.attr("fill", "none")
+    .data((await fdnyLocations)).enter()
+    .append("circle")
+    .attr("r", "2px")
+    .attr("stroke-width", "2.5px")
+    .attr("stroke", "green")
+    .attr("fill", "none")
     .attr("stroke-opacity", 0.5)
     .style("display", "none") //showFDNYLocations ? "inherit" : "none")
     .attr("transform", 
@@ -1365,12 +1366,6 @@ async function makeMap(theData){
     updateTrends();
   })
   map.on("viewreset zoom", reset);
- // map.on("move", (e) => { //debugger;
- //   svg2.attr("transform",
- //             "translate(" + -e.target.dragging._lastPos.x + "," + 
- //             -e.target.dragging._lastPos.y + ")");  })
-  
-  //map.on("move", (e) => legend.attr("transform", "translate(" + e.)
   
   reset();
   
