@@ -426,6 +426,7 @@ d3.selection.prototype.moveToFront = function() {
   }
 
 class mytooltip {
+
 /* 
  *
  *
@@ -546,7 +547,6 @@ async function makeTrends() {
   const ttWidth = 200
   const ttHeight = 20
   
-
   const indicators = [] //[ninetyNote, ninetyLine, medianNote, medianLine, averageNote, averageLine, serie]
   const tips = [medianTip, monthTip, medianCircle] //[tooltip, counttip, moreThanTip, lessThanTip, totaltip]
   
@@ -616,7 +616,7 @@ async function makeTrends() {
     .attr("class", "brush")
     .call(d3.brushX()
         .extent([[0, 0], [window.innerWidth, height]])
-        .on("brush", brushended));
+        .on("brush end", brushended));
 
   function brushended() {
     if (!d3.event.sourceEvent) return; // Only transition after input.
@@ -695,7 +695,7 @@ async function updateHist() {
 
   totaltip.setText(d3.format(",")(totalcalls) + " total calls")
   totaltip.setPosition(x2(binsize*numbins),y3(0.9))
-  totaltip.setVisibility("none")
+  totaltip.setVisibility(null)
 
    let y2 = d3.scaleLinear()
      .domain([0, d3.max(filterdata, d => +d.count)]).nice()
@@ -749,7 +749,12 @@ async function updateHist() {
 
   serie.exit().remove()
 
-  serie //.selectAll("path")
+  serie.enter() //.append("g")
+      .append("path")
+      .attr("fill", "none")
+      .attr("stroke-linejoin", "round")
+      .attr("stroke-linecap", "round")
+      .merge(serie)
       .attr("d", d => linea(d.cdf||0))
       .style("display", d => +cd == "" ? null : +cd%100 ? 
                                 (+d.CD%100 ? null : "none") :
@@ -758,12 +763,6 @@ async function updateHist() {
       //.transition().duration(150)
       .style("stroke", d => (+d.CD==+cd) ? "#fcf" : "#ccc")
       .style("stroke-width", d => (+d.CD==+cd) ? "5px" : "0.5px")
-
-  serie.enter() //.append("g")
-      .append("path")
-      .attr("fill", "none")
-      .attr("stroke-linejoin", "round")
-      .attr("stroke-linecap", "round")
 
 
   //if (cd%100) { serie.filter(d=>+d.CD==+cd).moveToFront() }
@@ -778,7 +777,7 @@ async function updateHist() {
   const averageNote = d3.selectAll("#averageNote")
   const ninetyNote = d3.selectAll("#ninetyNote")
   const indicators = [ninetyNote, ninetyLine, medianNote, medianLine, averageNote, averageLine, serie]
-  const tips = [tooltip, counttip, moreThanTip, lessThanTip, totaltip]
+  const tips = [tooltip, counttip, moreThanTip, lessThanTip] //, totaltip]
 
   const timeAxis = d3.select('.xAxis')
   //timeAxis.call(xAxis)
