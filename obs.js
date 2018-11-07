@@ -616,7 +616,7 @@ async function makeTrends() {
     .attr("class", "brush")
     .call(d3.brushX()
         .extent([[0, 0], [window.innerWidth, height]])
-        .on("end", brushended));
+        .on("brush", brushended));
 
   function brushended() {
     if (!d3.event.sourceEvent) return; // Only transition after input.
@@ -634,9 +634,13 @@ async function makeTrends() {
       d1[0] = d3.timeMonth.floor(d0[0]);
       d1[1] = d3.timeMonth.offset(d1[0]);
     }
-    startMonth = d3.timeFormat("%Y-%m")(d1[0])
-    endMonth = d3.timeFormat("%Y-%m")(d1[1])
-    updateHist()
+    const new_startMonth = d3.timeFormat("%Y-%m")(d1[0])
+    const new_endMonth = d3.timeFormat("%Y-%m")(d1[1])
+    if (new_startMonth != startMonth || new_endMonth != endMonth) {
+        startMonth = new_startMonth
+        endMonth = new_endMonth
+        updateHist()
+    }
 
     d3.select(this).transition().call(d3.event.target.move, d1.map(dateScale));
   }
