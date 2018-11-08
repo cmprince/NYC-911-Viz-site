@@ -1,6 +1,6 @@
 // Author: Chris Prince (@cmprince)
-// Based on notebook at: https://beta.observablehq.com/d/46e43adf74f9a8a9
-
+// Originally developed in notebook form at
+// https://beta.observablehq.com/d/46e43adf74f9a8a9
 
 /*
  *  Data that has already been downloaded or processed
@@ -193,11 +193,18 @@ function filterByCD2(d){
 }
 
 function filterByMonth(d){
-  // here, 'this' shall be a list containing the first month and last month.
-  if (this.length == 0) {return true}
+  // here, 'this' shall be a list containing one month or two months indicating a range.
+  
+  // if nothing passed in list, return true (everything passes filter)
+  if (this.length == 0) {return true} 
 
+  // if a single item is passed, assume it is one month and filter on exactly that
   else if (this.length == 1) {return d.month == this[0]}
 
+  // if two items are passed:
+  //   if first item is null then return true (everything passes)
+  //   otherwise return items with months between the two items (first inclusive, second exclusive)
+  // handling null allows for [null, null] to be passed when no filtering range is selected
   else if (this.length == 2) {
     const firstMonth = this[0],
           lastMonth = this[1];
@@ -205,6 +212,7 @@ function filterByMonth(d){
     return (firstMonth) ? (d.month >= firstMonth && d.month < lastMonth) : true
   }
 
+  // if three or more items are passed, log an error and return false (nothing passes filter)
   else {
     console.log("filterByMonth was called with an unknown 'this' value");
     return false
@@ -402,7 +410,7 @@ let yAxis3 = g => g
         .attr("font-weight", "bold")
         .text(dataSets.count))
 let t = () => d3.transition()
-                            .duration(250)
+                            .duration(50)
                             .ease(d3.easeLinear)
 let reColor = d  =>  d.style('stroke', "#aaa")
                             .style('stroke-width', "1px")
@@ -499,6 +507,8 @@ const svgTrends = d3.select("#trends").append("svg").style("width", "100%");
 const gTrends = svgTrends.append("g")
 const medianTip = new mytooltip({context: svgTrends})
 const monthTip = new mytooltip({context: svgTrends})
+const leftBrushTip = new mytooltip({context: svgTrends, align: "end", xoffset: 3})
+const rightBrushTip = new mytooltip({context: svgTrends, align: "start", xoffset: 3})
 const medianCircle = new mytooltip({context: svgTrends})
 medianCircle.tip.append("circle").attr('r',5)
 svgTrends.append("rect")
@@ -527,7 +537,7 @@ async function updateTrends() {
                                 (+d.CD >= +cd && +d.CD < (+cd + 100) ? 
                                    null  : "none"))
       .transition().duration(150)
-      .style("stroke", d => (+d.CD==+cd) ? "#fcf" : "#ddd")
+      .style("stroke", d => (+d.CD==+cd) ? "#fcf" : "#eed")
       .style("stroke-width", d => (+d.CD==+cd) ? "5px" : "0.5px")
 
   
@@ -548,7 +558,7 @@ async function makeTrends() {
   const ttHeight = 20
   
   const indicators = [] //[ninetyNote, ninetyLine, medianNote, medianLine, averageNote, averageLine, serie]
-  const tips = [medianTip, monthTip, medianCircle] //[tooltip, counttip, moreThanTip, lessThanTip, totaltip]
+  const tips = [medianTip, monthTip, medianCircle] //, leftBrushTip, rightBrushTip] 
   
   const dateAx = svgTrends.append("g")
 //      .attr('class', "xAxis")
@@ -615,14 +625,17 @@ async function makeTrends() {
   svgTrends.append("g")
     .attr("class", "brush")
     .call(d3.brushX()
-        .extent([[0, 0], [window.innerWidth, height]])
-        .on("brush end", brushended));
+        .extent([[dateScale(dateScale.domain()[0]), 0], //medianScale(medianScale.domain()[1])], 
+                 [dateScale(dateScale.domain()[1]), height]]) //svgTrends.height]]) //medianScale(medianScale.domain()[0])]])
+        .on("brush end", brushUpdate));
 
-  function brushended() {
+  function brushUpdate() {
     if (!d3.event.sourceEvent) return; // Only transition after input.
     if (!d3.event.selection) {
         startMonth = null
         endMonth = null
+        leftBrushTip.setVisibility("none")
+        rightBrushTip.setVisibility("none")
         updateHist()
         return
     }
@@ -639,10 +652,16 @@ async function makeTrends() {
     if (new_startMonth != startMonth || new_endMonth != endMonth) {
         startMonth = new_startMonth
         endMonth = new_endMonth
+        leftBrushTip.setText(d3.timeFormat("%b %Y")(d1[0]))
+        leftBrushTip.setPosition(dateScale(d1[0]), medianScale(200))
+        leftBrushTip.setVisibility(null)
+        rightBrushTip.setText(d3.timeFormat("%b %Y")(d1[1]))
+        rightBrushTip.setPosition(dateScale(d1[1]), medianScale(200))
+        rightBrushTip.setVisibility(null)
         updateHist()
     }
 
-    d3.select(this).transition().call(d3.event.target.move, d1.map(dateScale));
+    d3.select(this).transition().duration(50).call(d3.event.target.move, d1.map(dateScale));
   }
   
   //svg.on("click", () => { histMode = !histMode; console.log(histMode) })
@@ -761,7 +780,7 @@ async function updateHist() {
                                 (+d.CD >= +cd && +d.CD < (+cd + 100) ? 
                                    null  : "none"))
       //.transition().duration(150)
-      .style("stroke", d => (+d.CD==+cd) ? "#fcf" : "#ccc")
+      .style("stroke", d => (+d.CD==+cd) ? "#fcf" : "#eed")
       .style("stroke-width", d => (+d.CD==+cd) ? "5px" : "0.5px")
 
 
@@ -786,6 +805,7 @@ async function updateHist() {
 
   medianLine
       .transition(t)
+      .duration(100)
       .attr('x1', x2(median))
       .attr('y1', y3(0))
       .attr('x2', x2(median))
@@ -793,6 +813,7 @@ async function updateHist() {
   
   averageLine
       .transition(t)
+      .duration(100)
       .attr('x1', x2(average))
       .attr('y1', y2(0))
       .attr('x2', x2(average))
@@ -800,6 +821,7 @@ async function updateHist() {
   
   ninetyLine
       .transition(t)
+      .duration(100)
       .attr('x1', x2(ninetyPct))
       .attr('y1', y2(0))
       .attr('x2', x2(ninetyPct))
@@ -807,6 +829,7 @@ async function updateHist() {
 
   medianNote 
       .transition(t)
+      .duration(100)
       .attr('x', x2(median))
       .attr('text-anchor', (pct>0.4 & pct<0.6)? 'end':'start')
       .attr('transform', `translate(0,${y3(0.5)})`)
@@ -815,12 +838,14 @@ async function updateHist() {
   
   averageNote
       .transition(t)
+      .duration(100)
       .attr('x', x2(average))
       .attr('transform', `translate(0,${y3(1)})`)
       .text(`Average = ${Math.round(average)} seconds`)
   
   ninetyNote
       .transition(t)
+      .duration(100)
       .attr('x', Math.min(x2(binsize*numbins),x2(ninetyPct)))
       .attr('text-anchor', (x2(ninetyPct) > (window.innerWidth-240))? 'end':'start')
       .attr('transform', `translate(0,${Math.max(Math.min(y3(0.1),y3(pct)),y3(0.9))})`)
@@ -833,10 +858,12 @@ async function updateHist() {
     const hoverSecs = x2.invert(xCoord);
     const hoverBin = hoverSecs - hoverSecs % binsize;
 
-    for (let t of tips) {t.setVisibility(null)}
+    if (totalcalls) { 
+        for (let t of tips) {t.setVisibility(null)} 
+        hoverLine.style("display", null)
+        countLine.style("display", null)
+    }
     for (let e of indicators) {e.style("display", "none")}
-    hoverLine.style("display", null)
-    countLine.style("display", null)
     timeAxis.style("opacity", 0.2)
     countAxis.style("opacity", 0.2)
   })
@@ -1297,6 +1324,7 @@ async function makeMap(theData){
         }
   });
 
+  // This creates geometries for the map to work with from the raw Lat/Longs
   (await fdnyLocations).forEach(function(d) {
     d.LatLng = new L.LatLng(d.Latitude, d.Longitude)})
   
