@@ -331,7 +331,7 @@ async function fd(d){
     
 let filterData = fd(dataCat) 
 
-const colorSchemes = new Object({EMS: d3.schemeBlues[6], FDNY: d3.schemeReds[5]})
+const colorSchemes = new Object({EMS: d3.schemeBlues[6], FDNY: d3.schemePurples[5]})
 const domains = new Object({EMS: [250,550], FDNY: [150,400]})
 let color = d3.scaleQuantize()
   .domain(domains[agency])
@@ -504,6 +504,10 @@ percentSetter.oninput = async function () {
 
 
 const svgTrends = d3.select("#trends").append("svg").style("width", "100%");
+svgTrends.append("rect")
+    .attr('fill', '#111')
+    .style('width', '100%')
+    .style('fill-opacity', 0.25)
 const gTrends = svgTrends.append("g")
 const medianTip = new mytooltip({context: svgTrends})
 const monthTip = new mytooltip({context: svgTrends})
@@ -511,10 +515,6 @@ const leftBrushTip = new mytooltip({context: svgTrends, align: "end", xoffset: 3
 const rightBrushTip = new mytooltip({context: svgTrends, align: "start", xoffset: 3})
 const medianCircle = new mytooltip({context: svgTrends})
 medianCircle.tip.append("circle").attr('r',5)
-svgTrends.append("rect")
-    .attr('fill', '#111')
-    .style('width', '100%')
-    .style('fill-opacity', 0.08)
 let startMonth, endMonth
 
 async function updateTrends() {
@@ -537,7 +537,7 @@ async function updateTrends() {
                                 (+d.CD >= +cd && +d.CD < (+cd + 100) ? 
                                    null  : "none"))
       .transition().duration(150)
-      .style("stroke", d => (+d.CD==+cd) ? "#fcf" : "#eed")
+      .style("stroke", d => (+d.CD==+cd) ? "#fcf" : "#ddc")
       .style("stroke-width", d => (+d.CD==+cd) ? "5px" : "0.5px")
 
   
@@ -679,7 +679,7 @@ const svgHist = d3.select("#histogram").append("svg").style("width", "100%"); //
 svgHist.append("rect")
     .attr('fill', '#111')
     .style('width', '100%')
-    .style('fill-opacity', 0.08)
+    .style('fill-opacity', 0.25)
 
 const gBar = svgHist.append("g").style("fill", "gray")
 const gPath = svgHist.append("g")
@@ -780,7 +780,7 @@ async function updateHist() {
                                 (+d.CD >= +cd && +d.CD < (+cd + 100) ? 
                                    null  : "none"))
       //.transition().duration(150)
-      .style("stroke", d => (+d.CD==+cd) ? "#fcf" : "#eed")
+      .style("stroke", d => (+d.CD==+cd) ? "#fcf" : "#ddc")
       .style("stroke-width", d => (+d.CD==+cd) ? "5px" : "0.5px")
 
 
@@ -1333,7 +1333,7 @@ async function makeMap(theData){
     .append("circle")
     .attr("r", "2px")
     .attr("stroke-width", "2.5px")
-    .attr("stroke", "green")
+    .attr("stroke", "red")
     .attr("fill", "none")
     .attr("stroke-opacity", 0.5)
     .style("display", "none") //showFDNYLocations ? "inherit" : "none")
