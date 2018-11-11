@@ -25,14 +25,14 @@ img.leaflet-tile{
 #histogram, #trends { 
     display: block;
     position: fixed;
-    height: 10%;
+    height: 15%;
     width: 100%;
     left: 0;
     z-index: 1000;}
-#histogram {
-    top: 80%;}
 #trends {
-    top: 65%;}
+    top: 83%;}
+#histogram {
+    top: 68%;}
 #selection-controls {
     display: block;
     position: fixed;
@@ -74,9 +74,8 @@ body { height: 100%; margin: 0; padding: 0;}
 
 <body>
     <div id="map-container"></div>
-    <div id="histogram">
-    </div>
-    <div id="trends" style="fill:'gray'"></div>
+    <div id="histogram"></div>
+    <div id="trends"></div>
     <div id="selection-controls">
         <select id="CategoryBox"></select>
         <input type="checkbox" id="FDNYLocations"><label for="FDNYLocations">Show FDNY Locations</label></input>

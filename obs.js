@@ -25,8 +25,8 @@ const recordNumbers = d3.csv("./recordNumbers.csv")
  *  Constants for UI and categorization
  */
 
-const margin = {top: 5, right: 70, bottom: 60, left: 80}
-const height = 180
+const margin = {top: 10, right: 70, bottom: 60, left: 80}
+const height = 170
 const agencies = ['FDNY', 'EMS']
 const LLCategories = new Object({
   FDNY: ["Structural Fires", "NonStructural Fires", "Medical Emergencies", "NonMedical Emergencies"],
@@ -97,7 +97,7 @@ function catGraphUpdates () {
     // New scales for the histogram plot and the color scheme
     color = d3.scaleQuantize()
         .domain(domains[agency])
-        .range(colorSchemes[agency])
+        .range(colorSchemes[agency].slice(1))
 
     x2 = d3.scaleLinear()
         .domain([0, binsize*numbins]) // d3.max(testd.map(x=>+x.timebin+30))]) 
@@ -331,11 +331,11 @@ async function fd(d){
     
 let filterData = fd(dataCat) 
 
-const colorSchemes = new Object({EMS: d3.schemeBlues[6], FDNY: d3.schemePurples[5]})
+const colorSchemes = new Object({EMS: d3.schemeBlues[7], FDNY: d3.schemeOranges[6]})
 const domains = new Object({EMS: [250,550], FDNY: [150,400]})
 let color = d3.scaleQuantize()
   .domain(domains[agency])
-  .range(colorSchemes[agency])
+  .range(colorSchemes[agency].slice(1))
 
 // Axes and scaling functions
 let linea = d3.line()
@@ -503,7 +503,7 @@ percentSetter.oninput = async function () {
 }
 
 
-const svgTrends = d3.select("#trends").append("svg").style("width", "100%");
+const svgTrends = d3.select("#trends").append("svg").style("width", "100%").style("height", "100%");
 svgTrends.append("rect")
     .attr('fill', '#111')
     .style('width', '100%')
@@ -674,7 +674,7 @@ async function makeTrends() {
   };
 }
 
-const svgHist = d3.select("#histogram").append("svg").style("width", "100%"); //DOM.svg(width, height));
+const svgHist = d3.select("#histogram").append("svg").style("width", "100%").style("height", "100%"); //DOM.svg(width, height));
 //Add background
 svgHist.append("rect")
     .attr('fill', '#111')
@@ -756,6 +756,8 @@ async function updateHist() {
     .attr("height", d=>0.001)
     .merge(bar)
     .transition().duration(150)
+      .style("fill", "#888")
+      .style("stroke", "#aaa")
     .attr("x", d => x2(d.timebin) +1  )
     .attr("width", d => x2(.975*binsize)-x2(.025*binsize))
     .attr("y", d => y2(d.count))
@@ -933,10 +935,8 @@ async function updateHist() {
 async function makeHist() {
   let histMode = true //histogram or cdf display
   
-  let filterdata = await fd(dataSets);
-
  let y2 = d3.scaleLinear()
-   .domain([0, d3.max(filterdata, d => +d.count)]).nice()
+   .domain([0, 1000]).nice() 
    .range([height - margin.bottom, margin.top])
  let yAxis2 = g => g
    .attr("transform", `translate(${margin.left},0)`)
@@ -968,9 +968,9 @@ async function makeHist() {
       .style("display", "none")
       .attr("id", "countLine");
  
-  const average = 20
+  const average = 0
   const ninetyPct = 0
-  const median = 10
+  const median = 0
   const hoverLine = svgHist.append("line")
       .attr('x1', x2(0))
       .attr('y1', y3(0))
@@ -1153,8 +1153,8 @@ async function makeMap(theData){
   // The legend group is added to our static svg element
   let legendG = svg2.append('g')
     .attr("class", "key")
-    .attr("width", 500)
-    .attr("transform", `translate(25, ${window.innerHeight - 35})`) //Width/2.5-35})`) // + width/1.6 - 200 + ")")
+    .attr("width", 400)
+    .attr("transform", `translate(${window.innerWidth/2-200}, ${window.innerHeight*0.64})`) //Width/2.5-35})`) // + width/1.6 - 200 + ")")
   
   legendG.append('rect')
     .attr('width', 400)
