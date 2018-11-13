@@ -25,8 +25,10 @@ const recordNumbers = d3.csv("./recordNumbers.csv")
  *  Constants for UI and categorization
  */
 
-const margin = {top: 10, right: 70, bottom: 60, left: 80}
-const height = 170
+const height = window.innerHeight * 0.13 //170
+const tipsize = `{3.5/17*height}px`
+const margin = {top: height/17, right: 70, bottom: 3*height/17, left: 80}
+//const margin = {top: 10, right: 70, bottom: 60, left: 80}
 const agencies = ['FDNY', 'EMS']
 const LLCategories = new Object({
   FDNY: ["Structural Fires", "NonStructural Fires", "Medical Emergencies", "NonMedical Emergencies"],
@@ -507,14 +509,14 @@ const svgTrends = d3.select("#trends").append("svg").style("width", "100%").styl
 svgTrends.append("rect")
     .attr('fill', '#111')
     .style('width', '100%')
-    .style('fill-opacity', 0.25)
+    .style('fill-opacity', 0.15)
 const gTrends = svgTrends.append("g")
-const medianTip = new mytooltip({context: svgTrends})
-const monthTip = new mytooltip({context: svgTrends})
-const leftBrushTip = new mytooltip({context: svgTrends, align: "end", xoffset: 3})
-const rightBrushTip = new mytooltip({context: svgTrends, align: "start", xoffset: 3})
+const medianTip = new mytooltip({context: svgTrends, fontsize: tipsize})
+const monthTip = new mytooltip({context: svgTrends, fontsize: tipsize})
+const leftBrushTip = new mytooltip({context: svgTrends, align: "end", xoffset: 3, fontsize: tipsize})
+const rightBrushTip = new mytooltip({context: svgTrends, align: "start", xoffset: 3, fontsize: tipsize})
 const medianCircle = new mytooltip({context: svgTrends})
-medianCircle.tip.append("circle").attr('r',5)
+medianCircle.tip.append("circle").attr('r',height/20)
 let startMonth, endMonth
 
 async function updateTrends() {
@@ -538,6 +540,7 @@ async function updateTrends() {
                                    null  : "none"))
       .transition().duration(150)
       .style("stroke", d => (+d.CD==+cd) ? "#fcf" : "#ddc")
+      .style("stroke-opacity", d => (+d.CD==+cd) ? "1" : "0.4")
       .style("stroke-width", d => (+d.CD==+cd) ? "5px" : "0.5px")
 
   
@@ -618,7 +621,7 @@ async function makeTrends() {
     medianTip.setPosition(xPosition, yPosition -15)
     medianCircle.setPosition(xPosition, yPosition)
     medianTip.setText(theValue)
-    monthTip.setPosition(xPosition, medianScale(150)+15)
+    monthTip.setPosition(xPosition, medianScale(150)+2/17*height)
     monthTip.setText(d3.timeFormat("%b %Y")(theMonth))
   })
 
@@ -679,15 +682,14 @@ const svgHist = d3.select("#histogram").append("svg").style("width", "100%").sty
 svgHist.append("rect")
     .attr('fill', '#111')
     .style('width', '100%')
-    .style('fill-opacity', 0.25)
-
+    .style('fill-opacity', 0.15)
 const gBar = svgHist.append("g").style("fill", "gray")
 const gPath = svgHist.append("g")
-const counttip = new mytooltip({context: svgHist, ttWidth: 50, align: "end"})
-const tooltip = new mytooltip({context: svgHist})
-const totaltip = new mytooltip({context: svgHist, align: "end", xoffset: 20})
-const lessThanTip = new mytooltip({context: svgHist, align: "end", xoffset: 10, fontsize: '40px'})
-const moreThanTip = new mytooltip({context: svgHist, align: "start", xoffset: 10, fontsize: '40px'})
+const counttip = new mytooltip({context: svgHist, ttWidth: 50, align: "end", fontsize: tipsize})
+const tooltip = new mytooltip({context: svgHist, fontsize: tipsize})
+const totaltip = new mytooltip({context: svgHist, align: "end", xoffset: 20, fontsize: tipsize})
+const lessThanTip = new mytooltip({context: svgHist, align: "end", xoffset: 10, fontsize: tipsize})
+const moreThanTip = new mytooltip({context: svgHist, align: "start", xoffset: 10, fontsize: tipsize})
 
 async function updateHist() {
 
@@ -713,7 +715,7 @@ async function updateHist() {
   };
 
   totaltip.setText(d3.format(",")(totalcalls) + " total calls")
-  totaltip.setPosition(x2(binsize*numbins),y3(0.9))
+  totaltip.setPosition(x2(binsize*numbins),y3(0.95))
   totaltip.setVisibility(null)
 
    let y2 = d3.scaleLinear()
@@ -783,6 +785,7 @@ async function updateHist() {
                                    null  : "none"))
       //.transition().duration(150)
       .style("stroke", d => (+d.CD==+cd) ? "#fcf" : "#ddc")
+      .style("stroke-opacity", d => (+d.CD==+cd) ? "1" : "0.4")
       .style("stroke-width", d => (+d.CD==+cd) ? "5px" : "0.5px")
 
 
@@ -891,7 +894,7 @@ async function updateHist() {
     const hoverSecs = x2.invert(xCoord);
     const hoverBin = hoverSecs - hoverSecs % binsize;
     let xPosition = x2(hoverBin + binsize) //d3.mouse(this)[0] - ttWidth/2;
-    let yPosition = y3(0)+20 //d3.mouse(this)[1] - (ttHeight + 5);
+    let yPosition = y3(0)+2/17*height //d3.mouse(this)[1] - (ttHeight + 5);
     let pctLess = filterdata.filter(e=>+e.timebin<=hoverBin)
                             .reduce((sum, e) => sum += +e.count, 0) /
                   recordnumbers.filter(filterByCD2, cd).filter(filterByCat, fireCat) //(d=>fireCat==d.icg)
@@ -910,7 +913,7 @@ async function updateHist() {
     counttip.setText(d3.format(",")(+binCount))
     const isLow = (hoverBin/(binsize*numbins) < 0.2)
     const isHigh = (hoverBin/(binsize*numbins) > 0.8)
-    const yBump = isLow ? 30 : isHigh ? -30 : 0
+    const yBump = isLow ? 2/17*height : isHigh ? -2/17*height : 0
     let prefix
     let suffix
     // unicode below is left arrow and right arrow, respectively.
@@ -1004,7 +1007,7 @@ async function makeHist() {
     
   const medianNote = svgHist.append("text")
       .attr('font-family', 'sans-serif')
-      .attr('font-size', '14px')
+      .attr('font-size', `${20*height/170}px`)
       .attr('font-weight', 'bold')
       .attr('x', x2(median))
       .attr('align', 'right')
@@ -1019,6 +1022,7 @@ async function makeHist() {
   const averageNote = svgHist.append("text")
       .attr('font-family', 'sans-serif')
       .attr('font-size', '14px')
+      .attr('font-size', `${20*height/170}px`)
       .attr('x', x2(average))
       .attr('transform', `translate(0,${y3(1)})`)
       .attr("fill","black")
@@ -1030,6 +1034,7 @@ async function makeHist() {
   const ninetyNote = svgHist.append("text")
       .attr('font-family', 'sans-serif')
       .attr('font-size', '14px')
+      .attr('font-size', `${20*height/170}px`)
       .attr('x', Math.min(x2(binsize*numbins),x2(ninetyPct)))
       .attr('align', 'right')
       .attr('text-anchor', (x2(ninetyPct) > (window.innerWidth-240))? 'end':'start')
