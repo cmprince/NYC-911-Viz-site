@@ -367,7 +367,7 @@ let medianScale = d3.scaleLinear()
     .range([height - margin.bottom, margin.top])
 let medianAxis = g => g
     .attr("transform", `translate(${margin.left},0)`)
-    .call(d3.axisLeft(medianScale))
+    .call(d3.axisLeft(medianScale).ticks(4))
     //.call(g => g.select(".domain").remove())
     .call(g => g.select(".tick:last-of-type text").clone()
         .attr("x", 4)
@@ -723,7 +723,7 @@ async function updateHist() {
      .range([height - margin.bottom, margin.top])
    let yAxis2 = g => g
     .attr("transform", `translate(${margin.left},0)`)
-    .call(d3.axisLeft(y2))
+    .call(d3.axisLeft(y2).ticks(4))
     //.call(g => g.select(".domain").remove())
     .call(g => g.select(".tick:last-of-type text").clone()
         .attr("x", 4)
@@ -732,7 +732,7 @@ async function updateHist() {
         .text(dataSets.count))
   let yAxis3 = g => g
     .attr("transform", `translate(${window.innerWidth-margin.right},0)`)
-    .call(d3.axisRight(y3))
+    .call(d3.axisRight(y3).ticks(4))
     //.call(g => g.select(".domain").remove())
     .call(g => g.select(".tick:last-of-type text").clone()
         .attr("x", 4)
@@ -943,7 +943,7 @@ async function makeHist() {
    .range([height - margin.bottom, margin.top])
  let yAxis2 = g => g
    .attr("transform", `translate(${margin.left},0)`)
-   .call(d3.axisLeft(y2))
+   .call(d3.axisLeft(y2).ticks(4))
    //.call(g => g.select(".domain").remove())
    .call(g => g.select(".tick:last-of-type text").clone()
        .attr("x", 4)
@@ -952,7 +952,7 @@ async function makeHist() {
        .text(dataSets.count))
  let yAxis3 = g => g
    .attr("transform", `translate(${window.innerWidth-margin.right},0)`)
-   .call(d3.axisRight(y3))
+   .call(d3.axisRight(y3).ticks(4))
    //.call(g => g.select(".domain").remove())
    .call(g => g.select(".tick:last-of-type text").clone()
        .attr("x", 4)
