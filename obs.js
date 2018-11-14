@@ -688,8 +688,8 @@ const gPath = svgHist.append("g")
 const counttip = new mytooltip({context: svgHist, ttWidth: 50, align: "end", fontsize: tipsize})
 const tooltip = new mytooltip({context: svgHist, fontsize: tipsize})
 const totaltip = new mytooltip({context: svgHist, align: "end", xoffset: 20, fontsize: tipsize})
-const lessThanTip = new mytooltip({context: svgHist, align: "end", xoffset: 10, fontsize: tipsize})
-const moreThanTip = new mytooltip({context: svgHist, align: "start", xoffset: 10, fontsize: tipsize})
+const lessThanTip = new mytooltip({context: svgHist, align: "end", xoffset: 10, fontsize: `${4/17*height}px`})
+const moreThanTip = new mytooltip({context: svgHist, align: "start", xoffset: 10, fontsize: `${4/17*height}px`})
 
 async function updateHist() {
 
@@ -911,8 +911,8 @@ async function updateHist() {
     tooltip.setText(d3.format(",")(hoverBin + binsize) + " seconds")
     counttip.setPosition(x2(0)-10, y2(+binCount) + 0*ttHeight/2)
     counttip.setText(d3.format(",")(+binCount))
-    const isLow = (hoverBin/(binsize*numbins) < 0.2)
-    const isHigh = (hoverBin/(binsize*numbins) > 0.8)
+    const isLow = (hoverBin/(binsize*numbins) < 0.1)
+    const isHigh = (hoverBin/(binsize*numbins) > 0.9)
     const yBump = isLow ? 2/17*height : isHigh ? -2/17*height : 0
     let prefix
     let suffix
@@ -1070,7 +1070,8 @@ async function makeHist() {
       .attr('font-size', '12px')
       .text('number of calls')
       .attr("align","center")
-      .attr("transform",`rotate(-90)translate(-35, -50)`)  
+      .attr("transform",`rotate(-90)translate(${-height/2+margin.bottom},-50)`)  
+      //.attr("transform",`rotate(-90)translate(-35, -50)`)  
       .attr("fill","black")
   
   const cdfAxis = svgHist.append("g")
@@ -1080,7 +1081,7 @@ async function makeHist() {
       .append("text")
       .attr('font-family', 'sans-serif')
       .attr('font-size', '12px')
-      .text('cumulative portion of calls')
+      .text('total call fraction')
       .attr("align","center")
       .style("text-anchor", "middle")
       .attr("transform",`rotate(90)translate(${height/2-margin.top},-30)`)  
@@ -1097,7 +1098,7 @@ async function makeMap(theData){
   
   // Center the map on NYC and set the zoom level.
   let bounds = L.latLngBounds(L.latLng(40.2, -74.5), L.latLng(41.2, -73.4));
-  let map = L.map("map-container", { intertia:false, maxBounds: bounds }).setView([40.703312, -73.97968], 10);
+  let map = L.map("map-container", { intertia:false, maxBounds: bounds }).setView([40.703312, -73.97968], 11);
   map.setMinZoom( map.getBoundsZoom( map.options.maxBounds ) )
   
   // Boolean that controls whether the view is locked on click.
@@ -1159,7 +1160,7 @@ async function makeMap(theData){
   let legendG = svg2.append('g')
     .attr("class", "key")
     .attr("width", 400)
-    .attr("transform", `translate(${window.innerWidth/2-200}, ${window.innerHeight*0.64})`) //Width/2.5-35})`) // + width/1.6 - 200 + ")")
+    .attr("transform", `translate(${window.innerWidth/50}, ${window.innerHeight*0.64})`) //Width/2.5-35})`) // + width/1.6 - 200 + ")")
   
   legendG.append('rect')
     .attr('width', 400)

@@ -47,8 +47,16 @@ select {
     border-radius: 20px 0px 0px 20px;
     background-color: #f1f1f1;
 }
+#pct {
+    display: block;
+    position: fixed;
+    float: right;
+    width: 25%;
+    top: 65%;
+    left: 75%;
+	z-index: 2000;}
 #percentile {
-    width: 90%;
+    width: 70%;
 }
 
 #legend .domain {
@@ -77,8 +85,10 @@ body { height: 100%; margin: 0; padding: 0;}
     <div id="histogram"></div>
     <div id="trends"></div>
     <div id="selection-controls">
-        <select id="CategoryBox"></select>
         <input type="checkbox" id="FDNYLocations"><label for="FDNYLocations">Show FDNY Locations</label></input>
+        <select id="CategoryBox"></select>
+    </div>
+    <div id="pct">
         <label for "percentile">Percentile</label>
         <input type="range" id="percentile" name="percentile" min="0.01" max="0.99" step="0.01" value="0.90"/>
  
