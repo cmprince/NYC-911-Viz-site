@@ -617,8 +617,8 @@ async function makeTrends() {
     const theTrend = (await trends).filter(d=>d.CD==cd).filter(d=>d.icg==fireCat)[0].trend
     const theValue = theTrend.filter(d=>d.month.slice(0,7)==d3.timeFormat("%Y-%m")(theMonth))[0].median
     let xPosition = dateScale(d3.isoParse(theMonth)) //d3.mouse(this)[0] - ttWidth/2;
-    let yPosition = medianScale(theValue) //d3.mouse(this)[1] - (ttHeight + 5);
-    medianTip.setPosition(xPosition, yPosition -15)
+    let yPosition = medianScale(theValue)
+    medianTip.setPosition(xPosition, yPosition + 15 * (theValue > 400 ? 1 : -1))
     medianCircle.setPosition(xPosition, yPosition)
     medianTip.setText(theValue)
     monthTip.setPosition(xPosition, medianScale(150)+2/17*height)
@@ -628,8 +628,8 @@ async function makeTrends() {
   svgTrends.append("g")
     .attr("class", "brush")
     .call(d3.brushX()
-        .extent([[dateScale(dateScale.domain()[0]), 0], //medianScale(medianScale.domain()[1])], 
-                 [dateScale(dateScale.domain()[1]), height]]) //svgTrends.height]]) //medianScale(medianScale.domain()[0])]])
+        .extent([[dateScale(dateScale.domain()[0]), margin.top], 
+                 [dateScale(dateScale.domain()[1]), height-margin.bottom]]) 
         .on("brush end", brushUpdate));
 
   function brushUpdate() {
