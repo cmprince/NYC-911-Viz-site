@@ -51,7 +51,6 @@ select {
 #percentile {
     width: 50%;
 }
-
 #legend .domain {
     visibility: hidden;
 }
@@ -60,8 +59,53 @@ select {
     top: 0;
     left: 0;
     height: 100%;
-    width: 100%;}
+    width: 100%;
+}
+#about {
+    position: absolute;
+    top: 10%;
+    left: 10%;
+    height: 50%;
+    width: 80%;
+    z-index: 10000;
+    background: white;
+    box-shadow: 0 0 60px 10px rgba(0, 0, 0, 0.9);
 
+}
+.closed {
+  display: none;
+}
+.modal .close-button {
+  position: absolute;
+  z-index: 10001;
+  top: 10px;
+  right: 30px;
+  border: 0;
+  background: black;
+  color: white;
+  padding: 5px 10px;
+  font-size: 1.8rem;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+
+  background: rgba(0, 0, 0, 0.4);
+}
+.modal-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 90%;
+  height: 90%;
+  overflow: auto;
+  padding: 20px 50px 20px 20px;
+}
 html { height: 100% }
 body { height: 100%; margin: 0; padding: 0; font-family: sans-serif;}
 </style>
@@ -83,9 +127,73 @@ body { height: 100%; margin: 0; padding: 0; font-family: sans-serif;}
     <div id="pct">
         <label for "percentile">Percentile</label>
         <input type="range" id="percentile" name="percentile" min="0.01" max="0.99" step="0.01" value="0.90"/>
- 
 	</div>
+    <div class="modal-overlay" id="modal-overlay"></div>
+    <div class="modal" id="about">
+        <button class="close-button">&times;</button>
+        <div class="modal-content">
+            <h2>NYC Fire and EMS response times</h2>
+            This visualization has three display areas:<p>
+            <b>Map:</b> 
+            The map is colored by the median response time (the time for which half take more time and half take less) for the category selected in the drop-down box.
+            When no area is selected, the other displays show citywide data. 
+            Select community districts by hovering over them on the map; lock the other displays by clicking a community district. 
+            The borough buttons on the left act similarly. 
+            <p>
+            <b>Histogram:</b> 
+            The histogram area updates automatically with the selection. 
+            It indicates the distribution of response times for given incident types, dates and regions. 
+            The average and medians are shown, along with a slidable percentile indicator, which is adjusted with the percentile slider just above the histogram. 
+            Hovering over the histogram shows the percentage of calls less than and more than the selected time interval.
+            <p>
+            <b>Trends:</b> 
+            The trends area shows the median values over time. 
+            Hovering over the trend shows the median value at a given time; clicking and dragging opens a window that adjusts the histogram values indicating the call data in just the selected window. 
+            The window can be dragged and resized.
+            <p>
+            <i>Note on medians and percentiles:</i> The percentiles are estimated from the data in the histograms. This can lead to erratic results when there are small numbers of calls, so use care when interpreting these results.<br>
+            <p>
+            <b>How is this loading millions of calls worth of data?</b> 
+            It isn't. This data has been prefiltered and summarized by creating histograms for each call type, community district, and month, greatly reducing the amount of data to transmit to the browser. You can see how this filtering is done, and how the resulting datasets are written, in <a href="">this Observable notebook</a>
+            <p>
+            <b>Doesn't the City already provide response time information and trends?</b> 
+            Yes, you can see the official reports (under "Local Law 119") <a href="">here</a>.
+            However, this report focuses on a single number per borough per month: the average response time. 
+            While useful (and what is mandated by law!) showing the distribution of the data gives a fuller picture of how responses can vary, even within a smaller region or timeframe.
+            <p>
+            <b>Who is responsible for this?</b>
+            Chris Prince (that's me!).
+            I wrote the scripts to summarize the datasets and display the graphs. 
+            However, this could never have been made without the extraordinary work of NYC public servants:
+            FDNY, who collected the data;
+            the NYC Open Data team, who published it; and
+            the NYC DoITT GIS team, who create the map tiles and community district shapes.
+            That said, any errors in analysis or rendering are mine, and corrections should be sent to me (please do!).
+            You can <a href="https://twitter.com/intent/tweet?screen_name=superdupercrisp&ref_src=twsrc%5Etfw" class="twitter-mention-button" data-show-count="false">Tweet to @superdupercrisp</a><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>, or you can open an issue for this github project: 
+            
+            <p>
+            <b>Any other credit due?</b> 
+            I was inspired by <a target="_blank" href="http://graphics.latimes.com/how-fast-is-lafd">this exceptional visualization</a> done by the <a target="_blank" href="http://datadesk.latimes.com/">LA Times Data Desk</a> that looks at LAFD response times. Seriously, check it out! 
+
+
+        </div>
+    </div>
     <script src="./obs.js"></script>
+
+    <script>
+var closeButton = document.querySelector(".close-button");
+var modal = document.querySelector("#about");
+var modalOverlay = document.querySelector("#modal-overlay");
+closeButton.addEventListener("click", function() {
+  modal.classList.toggle("closed");
+  modalOverlay.classList.toggle("closed");
+});
+modalOverlay.addEventListener("click", function() {
+  modal.classList.toggle("closed");
+  modalOverlay.classList.toggle("closed");
+});
+    </script>
+<a href="https://twitter.com/intent/tweet?button_hashtag=NYCResponseTimes&ref_src=twsrc%5Etfw" class="twitter-hashtag-button" data-text="NYC response times for Fire and Medical Emergencies: https://localhost:8000" data-show-count="false">Tweet #TwitterDev</a><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 </body>
 
 </html>

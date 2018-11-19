@@ -1434,8 +1434,13 @@ async function makeMap(theData){
     this.stream.point(point.x, point.y);
   }
 }
-  
+
+function showIntro() {
+//alert("hey there")
+
+}
 
 makeMap(nycCD);
 makeHist();
 makeTrends();
+showIntro();
