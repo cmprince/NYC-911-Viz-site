@@ -1089,6 +1089,9 @@ async function makeHist() {
   
   updateHist()
 }
+  
+  // Boolean that controls whether the view is locked on click.
+  let hoverOn = true;
 
 async function makeMap(theData){
 
@@ -1100,9 +1103,6 @@ async function makeMap(theData){
   let bounds = L.latLngBounds(L.latLng(40.2, -74.5), L.latLng(41.2, -73.4));
   let map = L.map("map-container", { intertia:false, maxBounds: bounds }).setView([40.703312, -73.97968], 11);
   map.setMinZoom( map.getBoundsZoom( map.options.maxBounds ) )
-  
-  // Boolean that controls whether the view is locked on click.
-  let hoverOn = true;
   
   // Get map layers from NYC DoITT GIS tile server
   var baseLayer = L.tileLayer('https://maps{s}.nyc.gov/xyz/1.0.0/carto/basemap/{z}/{x}/{y}.jpg', {
@@ -1323,11 +1323,12 @@ async function makeMap(theData){
     }}})       
     .on("mouseleave", 
         function(d){ if(hoverOn){
-          d3.select(this)
+            cd = "";
+            d3.select(this)
             .transition(t)
               .call(reColor)
-          //updateHist()
         }
+          updateHist()
   });
 
   // This creates geometries for the map to work with from the raw Lat/Longs
